@@ -11,7 +11,7 @@ type Recipe = {
   instructions: string;
   prep_time: number | null;
   cook_time: number | null;
-  season: string;
+  season: string[];
   temperature_preference: string;
 };
 
@@ -23,6 +23,36 @@ export default function HomePage() {
   const [seasonFilter, setSeasonFilter] = useState('any');
   const [tempFilter, setTempFilter] = useState('any');
   const [isLoadingRecipes, setIsLoadingRecipes] = useState<boolean>(true);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+
+  const handleEdit = (recipe: Recipe) => {
+    setEditingRecipe(recipe);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this recipe?')) return;
+
+    const response = await fetch(`/api/recipes?id=${id}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      fetchRecipes();
+    }
+  };
+
+  const handleUpdate = async (updatedRecipe: Recipe) => {
+    const response = await fetch('/api/recipes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedRecipe),
+    });
+
+    if (response.ok) {
+      setEditingRecipe(null);
+      fetchRecipes();
+    }
+  };
 
   useEffect(() => {
     fetchRecipes();
@@ -41,15 +71,17 @@ export default function HomePage() {
 
   const filterRecipes = () => {
     let filtered = recipes;
-    
+
     if (seasonFilter !== 'any') {
-      filtered = filtered.filter(r => r.season === seasonFilter || r.season === 'any');
+      filtered = filtered.filter(r =>
+        r.season.includes(seasonFilter) || r.season.includes('any')
+      );
     }
-    
+
     if (tempFilter !== 'any') {
       filtered = filtered.filter(r => r.temperature_preference === tempFilter || r.temperature_preference === 'any');
     }
-    
+
     setFilteredRecipes(filtered);
   };
 
@@ -79,7 +111,7 @@ export default function HomePage() {
       {/* Wheel Spinner Section */}
       <div className="bg-gray-50 p-8 rounded-lg mb-8">
         <h2 className="text-2xl mb-4 text-center">what's for dinner?</h2>
-        
+
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
             <label className="block mb-2 font-medium">season</label>
@@ -119,7 +151,7 @@ export default function HomePage() {
           >
             {isSpinning ? '🎡 spinning...' : '🎯 spin the wheel!'}
           </button>
-          
+
           <p className="mt-4 text-gray-600">
             {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} available
           </p>
@@ -162,26 +194,42 @@ export default function HomePage() {
             <Loader />
           </div>
         )}
-        {recipes.length === 0 && !isLoadingRecipes ? (
-          <p className="text-gray-600">no recipes yet. add your first one!</p>
+        {recipes.length === 0 ? (
+          <p className="text-gray-600">No recipes yet. Add your first one!</p>
         ) : (
           <div className="grid gap-4">
             {recipes.map((recipe) => (
               <div key={recipe.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-bold mb-2">{recipe.name}</h3>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-xl font-bold">{recipe.name}</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(recipe)}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(recipe.id)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-4 text-sm text-gray-600 mb-2">
-                  {recipe.prep_time && <span>prep: {recipe.prep_time} min</span>}
-                  {recipe.cook_time && <span>cook: {recipe.cook_time} min</span>}
+                  {recipe.prep_time && <span>Prep: {recipe.prep_time} min</span>}
+                  {recipe.cook_time && <span>Cook: {recipe.cook_time} min</span>}
                   <span className="capitalize">{recipe.season}</span>
                   <span className="capitalize">{recipe.temperature_preference}</span>
                 </div>
                 <details className="mt-2">
                   <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                    view recipe
+                    View Recipe
                   </summary>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <h4 className="font-bold mb-2">ingredients:</h4>
+                      <h4 className="font-bold mb-2">Ingredients:</h4>
                       <ul className="list-disc list-inside">
                         {recipe.ingredients.map((ing, i) => (
                           <li key={i}>{ing}</li>
@@ -189,7 +237,7 @@ export default function HomePage() {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-bold mb-2">instructions:</h4>
+                      <h4 className="font-bold mb-2">Instructions:</h4>
                       <p className="whitespace-pre-wrap">{recipe.instructions}</p>
                     </div>
                   </div>
@@ -199,6 +247,147 @@ export default function HomePage() {
           </div>
         )}
       </div>
+      {editingRecipe && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Edit Recipe</h2>
+              <button
+                onClick={() => setEditingRecipe(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleUpdate(editingRecipe);
+            }} className="space-y-4">
+              <div>
+                <label className="block mb-2 font-medium">Recipe Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editingRecipe.name}
+                  onChange={(e) => setEditingRecipe({ ...editingRecipe, name: e.target.value })}
+                  className="w-full p-2 border rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium">Ingredients (one per line)</label>
+                <textarea
+                  required
+                  rows={6}
+                  value={editingRecipe.ingredients.join('\n')}
+                  onChange={(e) => setEditingRecipe({
+                    ...editingRecipe,
+                    ingredients: e.target.value.split('\n').filter(i => i.trim())
+                  })}
+                  className="w-full p-2 border rounded"
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-medium">Instructions</label>
+                <textarea
+                  required
+                  rows={8}
+                  value={editingRecipe.instructions}
+                  onChange={(e) => setEditingRecipe({ ...editingRecipe, instructions: e.target.value })}
+                  className="w-full p-2 border rounded"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-2 font-medium">Prep Time (minutes)</label>
+                  <input
+                    type="number"
+                    value={editingRecipe.prep_time || ''}
+                    onChange={(e) => setEditingRecipe({
+                      ...editingRecipe,
+                      prep_time: parseInt(e.target.value) || null
+                    })}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-medium">Cook Time (minutes)</label>
+                  <input
+                    type="number"
+                    value={editingRecipe.cook_time || ''}
+                    onChange={(e) => setEditingRecipe({
+                      ...editingRecipe,
+                      cook_time: parseInt(e.target.value) || null
+                    })}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-2 font-medium">Seasons</label>
+                  <div className="space-y-2">
+                    {['spring', 'summer', 'fall', 'winter'].map(season => (
+                      <label key={season} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={editingRecipe.season.includes(season)}
+                          onChange={(e) => {
+                            const newSeasons = e.target.checked
+                              ? [...editingRecipe.season, season]
+                              : editingRecipe.season.filter(s => s !== season);
+                            setEditingRecipe({ ...editingRecipe, season: newSeasons });
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="capitalize">{season}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-medium">Temperature</label>
+                  <select
+                    value={editingRecipe.temperature_preference}
+                    onChange={(e) => setEditingRecipe({
+                      ...editingRecipe,
+                      temperature_preference: e.target.value
+                    })}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="any">Any</option>
+                    <option value="hot">Hot</option>
+                    <option value="cold">Cold</option>
+                    <option value="room-temp">Room Temp</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingRecipe(null)}
+                  className="flex-1 bg-gray-300 text-gray-700 py-3 rounded font-medium hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

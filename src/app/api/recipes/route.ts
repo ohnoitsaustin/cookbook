@@ -48,3 +48,59 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, ...data } = body;
+    
+    const client = createClient({
+      connectionString: process.env.POSTGRES_URL,
+    });
+    await client.connect();
+
+    const result = await client.query(
+      `UPDATE recipes 
+       SET name = $1, ingredients = $2, instructions = $3, 
+           prep_time = $4, cook_time = $5, season = $6, temperature_preference = $7
+       WHERE id = $8
+       RETURNING *`,
+      [
+        data.name,
+        data.ingredients,
+        data.instructions,
+        data.prep_time,
+        data.cook_time,
+        data.season,
+        data.temperature_preference,
+        id
+      ]
+    );
+
+    await client.end();
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating recipe:', error);
+    return NextResponse.json({ error: 'Failed to update recipe' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    const client = createClient({
+      connectionString: process.env.POSTGRES_URL,
+    });
+    await client.connect();
+
+    await client.query('DELETE FROM recipes WHERE id = $1', [id]);
+    
+    await client.end();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting recipe:', error);
+    return NextResponse.json({ error: 'Failed to delete recipe' }, { status: 500 });
+  }
+}
