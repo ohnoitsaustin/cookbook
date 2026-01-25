@@ -13,37 +13,49 @@ export default function RecipesPage() {
     temperature_preference: 'any'
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const response = await fetch('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...formData,
-        ingredients: formData.ingredients.split('\n').filter(i => i.trim()),
-        prep_time: parseInt(formData.prep_time) || null,
-        cook_time: parseInt(formData.cook_time) || null,
-      })
-    });
+  const [showSuccess, setShowSuccess] = useState(false);
 
-    if (response.ok) {
-      alert('Recipe added!');
-      setFormData({
-        name: '',
-        ingredients: '',
-        instructions: '',
-        prep_time: '',
-        cook_time: '',
-        season: 'any',
-        temperature_preference: 'any'
-      });
-    }
-  };
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  const response = await fetch('/api/recipes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...formData,
+      ingredients: formData.ingredients.split('\n').filter(i => i.trim()),
+      prep_time: parseInt(formData.prep_time) || null,
+      cook_time: parseInt(formData.cook_time) || null,
+    })
+  });
+
+  if (response.ok) {
+    setShowSuccess(true);
+    setFormData({
+      name: '',
+      ingredients: '',
+      instructions: '',
+      prep_time: '',
+      cook_time: '',
+      season: 'any',
+      temperature_preference: 'any'
+    });
+    
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 5000);
+  }
+};
 
   return (
     <div className="max-w-2xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-8">Add a Recipe</h1>
+
+      {showSuccess && (
+        <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded transition-all duration-300 ease-in-out animate-slide-down">
+          ✓ Recipe added successfully!
+        </div>
+      )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>

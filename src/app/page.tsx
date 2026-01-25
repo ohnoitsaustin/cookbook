@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Loader from '../components/Loader';
 
 type Recipe = {
   id: number;
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [seasonFilter, setSeasonFilter] = useState('any');
   const [tempFilter, setTempFilter] = useState('any');
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState<boolean>(true);
 
   useEffect(() => {
     fetchRecipes();
@@ -34,6 +36,7 @@ export default function HomePage() {
     const response = await fetch('/api/recipes');
     const data = await response.json();
     setRecipes(data);
+    setIsLoadingRecipes(false);
   };
 
   const filterRecipes = () => {
@@ -69,47 +72,41 @@ export default function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Family Cookbook</h1>
-        <Link 
-          href="/recipes" 
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Add Recipe
-        </Link>
+      <div className="mb-8">
+        <h1 className="font-ballet text-5xl font-medium text-center">Lord Family Cookbook</h1>
       </div>
 
       {/* Wheel Spinner Section */}
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-lg mb-8">
-        <h2 className="text-2xl font-bold mb-4 text-center">What's for Dinner?</h2>
+      <div className="bg-gray-50 p-8 rounded-lg mb-8">
+        <h2 className="text-2xl mb-4 text-center">what's for dinner?</h2>
         
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="block mb-2 font-medium">Season</label>
+            <label className="block mb-2 font-medium">season</label>
             <select
               value={seasonFilter}
               onChange={(e) => setSeasonFilter(e.target.value)}
               className="w-full p-2 border rounded"
             >
-              <option value="any">Any Season</option>
-              <option value="spring">Spring</option>
-              <option value="summer">Summer</option>
-              <option value="fall">Fall</option>
-              <option value="winter">Winter</option>
+              <option value="any">any season</option>
+              <option value="spring">spring</option>
+              <option value="summer">summer</option>
+              <option value="fall">fall</option>
+              <option value="winter">winter</option>
             </select>
           </div>
 
           <div>
-            <label className="block mb-2 font-medium">Temperature</label>
+            <label className="block mb-2 font-medium">temperature</label>
             <select
               value={tempFilter}
               onChange={(e) => setTempFilter(e.target.value)}
               className="w-full p-2 border rounded"
             >
-              <option value="any">Any Temp</option>
-              <option value="hot">Hot</option>
-              <option value="cold">Cold</option>
-              <option value="room-temp">Room Temp</option>
+              <option value="any">any temp</option>
+              <option value="hot">hot</option>
+              <option value="cold">cold</option>
+              <option value="room-temp">room temp</option>
             </select>
           </div>
         </div>
@@ -118,9 +115,9 @@ export default function HomePage() {
           <button
             onClick={spinWheel}
             disabled={isSpinning}
-            className="bg-purple-600 text-white px-8 py-4 rounded-lg text-xl font-bold hover:bg-purple-700 disabled:bg-gray-400 transition-all transform hover:scale-105"
+            className="bg-deep-blue text-white px-8 py-4 rounded-lg text-xl font-bold disabled:bg-gray-400 transition-all transform hover:scale-105"
           >
-            {isSpinning ? '🎡 Spinning...' : '🎯 Spin the Wheel!'}
+            {isSpinning ? '🎡 spinning...' : '🎯 spin the wheel!'}
           </button>
           
           <p className="mt-4 text-gray-600">
@@ -129,9 +126,16 @@ export default function HomePage() {
         </div>
 
         {selectedRecipe && (
-          <div className="mt-6 bg-white p-6 rounded-lg shadow-lg animate-bounce">
-            <h3 className="text-2xl font-bold text-center text-purple-600 mb-2">
-              🎉 Tonight's Dinner 🎉
+          <div className="mt-6 bg-white p-6 rounded-lg shadow-lg relative">
+            <button
+              onClick={() => setSelectedRecipe(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h3 className="text-2xl font-bold text-center text-deep-blue mb-2">
+              🎉 tonight's dinner 🎉
             </h3>
             <p className="text-3xl font-bold text-center">{selectedRecipe.name}</p>
             {(selectedRecipe.prep_time || selectedRecipe.cook_time) && (
@@ -147,27 +151,37 @@ export default function HomePage() {
 
       {/* Recipe List */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">All Recipes</h2>
-        {recipes.length === 0 ? (
-          <p className="text-gray-600">No recipes yet. Add your first one!</p>
+        <div className="flex justify-between">
+          <h2 className="flex-1 text-2xl font-bold mb-4">all recipes</h2>
+          <div className="flex-1 justify-self-end text-right">
+            <Link className=" py-2 hover:underline" href="/add" >add a recipe</Link>
+          </div>
+        </div>
+        {isLoadingRecipes && (
+          <div className="mt-8">
+            <Loader />
+          </div>
+        )}
+        {recipes.length === 0 && !isLoadingRecipes ? (
+          <p className="text-gray-600">no recipes yet. add your first one!</p>
         ) : (
           <div className="grid gap-4">
             {recipes.map((recipe) => (
               <div key={recipe.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
                 <h3 className="text-xl font-bold mb-2">{recipe.name}</h3>
                 <div className="flex gap-4 text-sm text-gray-600 mb-2">
-                  {recipe.prep_time && <span>Prep: {recipe.prep_time} min</span>}
-                  {recipe.cook_time && <span>Cook: {recipe.cook_time} min</span>}
+                  {recipe.prep_time && <span>prep: {recipe.prep_time} min</span>}
+                  {recipe.cook_time && <span>cook: {recipe.cook_time} min</span>}
                   <span className="capitalize">{recipe.season}</span>
                   <span className="capitalize">{recipe.temperature_preference}</span>
                 </div>
                 <details className="mt-2">
                   <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
-                    View Recipe
+                    view recipe
                   </summary>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <h4 className="font-bold mb-2">Ingredients:</h4>
+                      <h4 className="font-bold mb-2">ingredients:</h4>
                       <ul className="list-disc list-inside">
                         {recipe.ingredients.map((ing, i) => (
                           <li key={i}>{ing}</li>
@@ -175,7 +189,7 @@ export default function HomePage() {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-bold mb-2">Instructions:</h4>
+                      <h4 className="font-bold mb-2">instructions:</h4>
                       <p className="whitespace-pre-wrap">{recipe.instructions}</p>
                     </div>
                   </div>
