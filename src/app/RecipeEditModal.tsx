@@ -1,0 +1,182 @@
+import { useState } from "react";
+import { Recipe } from "./Recipe";
+
+export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void }) => {
+    const [uploading, setUploading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            if (data.url) {
+                setEditingRecipe({ ...editingRecipe, image_url: data.url } as Recipe);
+            }
+        } catch (error) {
+            console.error('Upload failed:', error);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">edit recipe</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 text-2xl"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    onUpdate(editingRecipe);
+                }} className="space-y-4">
+                    <div>
+                        <label className="block mb-2 font-medium">recipe name</label>
+                        <input
+                            type="text"
+                            required
+                            value={editingRecipe.name}
+                            onChange={(e) => setEditingRecipe({ ...editingRecipe, name: e.target.value })}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                    <div>
+                        <label className="block mb-2 font-medium">recipe image</label>
+                        {editingRecipe.image_url && (
+                            <div className="mb-2">
+                                <img
+                                    src={editingRecipe.image_url}
+                                    alt="Recipe preview"
+                                    className="w-full max-w-md h-48 object-cover rounded"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingRecipe({ ...editingRecipe, image_url: null })}
+                                    className="text-red-600 text-sm mt-2"
+                                >
+                                    Remove image
+                                </button>
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            disabled={uploading}
+                            className="w-full p-2 border rounded"
+                        />
+                        {uploading && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
+                    </div>
+                    <div>
+                        <label className="block mb-2 font-medium">ingredients (one per line)</label>
+                        <textarea
+                            required
+                            rows={6}
+                            value={editingRecipe.ingredients.join('\n')}
+                            onChange={(e) => setEditingRecipe({
+                                ...editingRecipe,
+                                ingredients: e.target.value.split('\n').filter(i => i.trim())
+                            })}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block mb-2 font-medium">instructions</label>
+                        <textarea
+                            required
+                            rows={8}
+                            value={editingRecipe.instructions}
+                            onChange={(e) => setEditingRecipe({ ...editingRecipe, instructions: e.target.value })}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block mb-2 font-medium">prep time (minutes)</label>
+                            <input
+                                type="number"
+                                value={editingRecipe.prep_time || ''}
+                                onChange={(e) => setEditingRecipe({
+                                    ...editingRecipe,
+                                    prep_time: parseInt(e.target.value) || null
+                                })}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block mb-2 font-medium">cook time (minutes)</label>
+                            <input
+                                type="number"
+                                value={editingRecipe.cook_time || ''}
+                                onChange={(e) => setEditingRecipe({
+                                    ...editingRecipe,
+                                    cook_time: parseInt(e.target.value) || null
+                                })}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block mb-2 font-medium">seasons</label>
+                            <div className="space-y-2">
+                                {['spring', 'summer', 'fall', 'winter'].map(season => (
+                                    <label key={season} className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={editingRecipe.season.includes(season)}
+                                            onChange={(e) => {
+                                                const newSeasons = e.target.checked
+                                                    ? [...editingRecipe.season, season]
+                                                    : editingRecipe.season.filter(s => s !== season);
+                                                setEditingRecipe({ ...editingRecipe, season: newSeasons });
+                                            }}
+                                            className="w-4 h-4"
+                                        />
+                                        <span className="capitalize">{season}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <button
+                            type="submit"
+                            className="flex-1 bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700"
+                        >
+                            Save Changes
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setEditingRecipe(null)}
+                            className="flex-1 bg-gray-300 text-gray-700 py-3 rounded font-medium hover:bg-gray-400"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
