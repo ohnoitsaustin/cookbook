@@ -89,3 +89,38 @@ details[open]>*:not(summary) {
     transform: translateY(0);
   }
 }
+
+@keyframes wiggle {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-10deg);
+  }
+
+  75% {
+    transform: rotate(10deg);
+  }
+}
+
+.wiggle-emoji {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+
+.wiggle-emoji:hover,
+button:hover .wiggle-emoji {
+  animation: wiggle 0.3s ease-in-out infinite;
+}
+
+@keyframes slot-spin-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-33.333%);
+  }
+}

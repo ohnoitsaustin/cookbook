@@ -1,31 +1,27 @@
-import { createClient } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import {
+  createRecipe,
+  deleteRecipe,
+  getRecipes,
+  updateRecipe,
+} from '@/src/lib/airtable';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const client = createClient({
-      connectionString: process.env.POSTGRES_URL,
+
+    const recipe = await createRecipe({
+      name: body.name,
+      ingredients: body.ingredients,
+      instructions: body.instructions,
+      prep_time: body.prep_time,
+      cook_time: body.cook_time,
+      season: body.season,
+      image_url: body.image_url,
+      tags: body.tags || [],
     });
-    await client.connect();
 
-    const result = await client.query(
-      `INSERT INTO recipes (name, ingredients, instructions, prep_time, cook_time, season, image_url)
-   VALUES ($1, $2, $3, $4, $5, $6, $7)
-   RETURNING *`,
-      [
-        body.name,
-        body.ingredients,
-        body.instructions,
-        body.prep_time,
-        body.cook_time,
-        body.season,
-        body.image_url,
-      ]
-    );
-
-    await client.end();
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json(recipe);
   } catch (error) {
     console.error('Error adding recipe:', error);
     return NextResponse.json({ error: 'Failed to add recipe' }, { status: 500 });
@@ -34,15 +30,8 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const client = createClient({
-      connectionString: process.env.POSTGRES_URL,
-    });
-    await client.connect();
-
-    const result = await client.query('SELECT * FROM recipes ORDER BY created_at DESC');
-
-    await client.end();
-    return NextResponse.json(result.rows);
+    const recipes = await getRecipes();
+    return NextResponse.json(recipes);
   } catch (error) {
     console.error('Error fetching recipes:', error);
     return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
@@ -54,31 +43,18 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { id, ...data } = body;
 
-    const client = createClient({
-      connectionString: process.env.POSTGRES_URL,
+    const recipe = await updateRecipe(id, {
+      name: data.name,
+      ingredients: data.ingredients,
+      instructions: data.instructions,
+      prep_time: data.prep_time,
+      cook_time: data.cook_time,
+      season: data.season,
+      image_url: data.image_url,
+      tags: data.tags || [],
     });
-    await client.connect();
 
-    const result = await client.query(
-      `UPDATE recipes 
-      SET name = $1, ingredients = $2, instructions = $3, 
-          prep_time = $4, cook_time = $5, season = $6, image_url = $7
-      WHERE id = $8
-      RETURNING *`,
-      [
-        data.name,
-        data.ingredients,
-        data.instructions,
-        data.prep_time,
-        data.cook_time,
-        data.season,
-        data.image_url,
-        id
-      ]
-    );
-
-    await client.end();
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json(recipe);
   } catch (error) {
     console.error('Error updating recipe:', error);
     return NextResponse.json({ error: 'Failed to update recipe' }, { status: 500 });
@@ -90,14 +66,11 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    const client = createClient({
-      connectionString: process.env.POSTGRES_URL,
-    });
-    await client.connect();
+    if (!id) {
+      return NextResponse.json({ error: 'Recipe ID required' }, { status: 400 });
+    }
 
-    await client.query('DELETE FROM recipes WHERE id = $1', [id]);
-
-    await client.end();
+    await deleteRecipe(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting recipe:', error);

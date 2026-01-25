@@ -2,7 +2,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 export type Recipe = {
-    id: number;
+    id: string;
     name: string;
     ingredients: string[];
     instructions: string;
@@ -10,6 +10,15 @@ export type Recipe = {
     cook_time: number | null;
     season: string[];
     image_url?: string | null;
+    tags: string[];
+};
+
+const seasonEmojis: Record<string, string> = {
+    spring: '🌸',
+    summer: '☀️',
+    fall: '🍂',
+    winter: '❄️',
+    any: '🗓️'
 };
 
 type Props = {
@@ -27,7 +36,7 @@ export const Recipe = ({ recipe, className, setEditingRecipe, fetchRecipes, layo
         setEditingRecipe(recipe);
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this recipe?')) return;
 
         const response = await fetch(`/api/recipes?id=${id}`, {
@@ -76,8 +85,27 @@ export const Recipe = ({ recipe, className, setEditingRecipe, fetchRecipes, layo
             <div className="flex gap-4 text-sm text-gray-600 mb-2">
                 {recipe.prep_time && <span>prep: {recipe.prep_time} min</span>}
                 {recipe.cook_time && <span>cook: {recipe.cook_time} min</span>}
-                <span>season: {recipe.season.join(', ')}</span>
+                <span className="flex items-center gap-1">
+                    {recipe.season.map(s => seasonEmojis[s] || s).join(' ')}
+                </span>
             </div>
+            {recipe.tags && recipe.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                    {recipe.tags.slice(0, 3).map(tag => (
+                        <span
+                            key={tag}
+                            className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
+                        >
+                            {tag}
+                        </span>
+                    ))}
+                    {recipe.tags.length > 3 && (
+                        <span className="inline-block px-2 py-0.5 text-gray-500 text-xs">
+                            +{recipe.tags.length - 3} more
+                        </span>
+                    )}
+                </div>
+            )}
             <div className="mt-2">
                 <button
                     onClick={() => setIsOpen(!isOpen)}

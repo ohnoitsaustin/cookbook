@@ -3,6 +3,7 @@
 import { getCurrentSeason } from '@/src/utils/utils';
 import Link from 'next/link';
 import { useState } from 'react';
+import { TagInput } from '@/src/components/TagInput';
 
 export default function RecipesPage() {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ export default function RecipesPage() {
     cook_time: '',
     seasons: [] as string[],
     image_url: '' as string | null,
+    tags: [] as string[],
   });
 
   const [showSuccess, setShowSuccess] = useState(false);
@@ -32,7 +34,8 @@ export default function RecipesPage() {
         prep_time: parseInt(formData.prep_time) || null,
         cook_time: parseInt(formData.cook_time) || null,
         season: formData.seasons.length > 0 ? formData.seasons : ['any'],
-        image_url: formData.image_url, // Add this
+        image_url: formData.image_url,
+        tags: formData.tags,
       })
     });
 
@@ -46,7 +49,10 @@ export default function RecipesPage() {
         cook_time: '',
         seasons: [],
         image_url: null,
+        tags: [],
       });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
 
       setTimeout(() => {
         setShowSuccess(false);
@@ -75,6 +81,7 @@ export default function RecipesPage() {
           cook_time: importedRecipe.cook_time?.toString() || '',
           seasons: [getCurrentSeason()],
           image_url: importedRecipe.image_url,
+          tags: importedRecipe.tags || [],
         });
         setImportUrl('');
       } else {
@@ -261,6 +268,14 @@ export default function RecipesPage() {
             </div>
 
           </div>
+        </div>
+
+        <div>
+          <label className="block mb-2 font-medium">tags</label>
+          <TagInput
+            selectedTags={formData.tags}
+            onChange={(tags) => setFormData({ ...formData, tags })}
+          />
         </div>
 
         <button

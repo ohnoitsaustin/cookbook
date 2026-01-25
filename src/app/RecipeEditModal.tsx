@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Recipe } from "./Recipe";
+import { TagInput } from "@/src/components/TagInput";
 
 export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void }) => {
     const [uploading, setUploading] = useState(false);
@@ -158,6 +159,14 @@ export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRe
                                 ))}
                             </div>
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block mb-2 font-medium">tags</label>
+                        <TagInput
+                            selectedTags={editingRecipe.tags}
+                            onChange={(tags) => setEditingRecipe({ ...editingRecipe, tags })}
+                        />
                     </div>
 
                     <div className="flex gap-4">
