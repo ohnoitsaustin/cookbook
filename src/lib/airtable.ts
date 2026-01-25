@@ -4,11 +4,36 @@ import Airtable from 'airtable';
 const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
 const base = airtable.base(process.env.AIRTABLE_BASE_ID!);
 
-// Table references
-const recipesTable = base(process.env.AIRTABLE_TABLE_RECIPES!);
-const ingredientsTable = base(process.env.AIRTABLE_TABLE_INGREDIENTS!);
-const seasonsTable = base(process.env.AIRTABLE_TABLE_SEASONS!);
-const tagsTable = base(process.env.AIRTABLE_TABLE_TAGS!);
+// Define field interfaces for proper TypeScript typing
+interface RecipeFields {
+  Name: string;
+  Instructions: string;
+  'Prep Time': number | null;
+  'Cook Time': number | null;
+  'Image URL': string;
+  Ingredients: string[]; // Linked ingredient record IDs
+  Seasons: string[]; // Linked season record IDs
+  Tags: string[]; // Linked tag record IDs
+}
+
+interface IngredientFields {
+  Name: string;
+}
+
+interface SeasonFields {
+  Name: string;
+}
+
+interface TagFields {
+  Name: string;
+  Recipes: string[]; // Linked recipes
+}
+
+// Table references (using type assertions for Airtable.js v0.12)
+const recipesTable = base(process.env.AIRTABLE_TABLE_RECIPES!) as any;
+const ingredientsTable = base(process.env.AIRTABLE_TABLE_INGREDIENTS!) as any;
+const seasonsTable = base(process.env.AIRTABLE_TABLE_SEASONS!) as any;
+const tagsTable = base(process.env.AIRTABLE_TABLE_TAGS!) as any;
 
 export type Recipe = {
   id: string;
@@ -117,7 +142,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
     // Transform records and fetch linked data
     const recipes = await Promise.all(
-      records.map(async (record) => {
+      records.map(async (record: typeof records[0]) => {
         const fields = record.fields;
 
         // Fetch linked ingredient names
@@ -313,14 +338,16 @@ export async function updateRecipe(
 
     // Update recipe record
     await recipesTable.update(id, {
-      Name: data.name,
-      Instructions: data.instructions,
-      'Prep Time': data.prep_time,
-      'Cook Time': data.cook_time,
-      'Image URL': data.image_url || '',
-      Ingredients: ingredientIds,
-      Seasons: seasonIds.filter(id => id) as string[],
-      Tags: tagIds,
+      fields: {
+        Name: data.name,
+        Instructions: data.instructions,
+        'Prep Time': data.prep_time,
+        'Cook Time': data.cook_time,
+        'Image URL': data.image_url || '',
+        Ingredients: ingredientIds,
+        Seasons: seasonIds.filter(id => id) as string[],
+        Tags: tagIds,
+      }
     });
 
     // Fetch and return the updated recipe with linked data
@@ -347,30 +374,12 @@ export async function getTags(): Promise<{ tag: string; count: number }[]> {
     const records = await tagsTable.select().all();
 
     const tagsWithCounts = records
-      .map((record) => {
-        // The linked Recipes field might be named differently
-        // Try common variations or find any array field that looks like linked records
-        let recipesField = record.fields.Recipes;
-
-        // If not found, look for any field that might be the linked recipes field
-        if (!recipesField) {
-          const fieldNames = Object.keys(record.fields);
-          const linkedRecipeField = fieldNames.find(name =>
-            name.toLowerCase().includes('recipe') && Array.isArray(record.fields[name])
-          );
-          recipesField = linkedRecipeField ? record.fields[linkedRecipeField] : [];
-        }
-
-        const count = Array.isArray(recipesField) ? recipesField.length : 0;
-
-        return {
-          tag: record.fields.Name as string,
-          count,
-        };
-      })
-      .filter(t => t.tag) // Filter out any undefined tags
-      .filter(t => t.count > 0) // Only show tags used in at least one recipe
-      .sort((a, b) => {
+      .map((record: typeof records[0]) => ({
+        tag: record.fields.Name as string,
+        count: (record.fields.Recipes as string[] || []).length,
+      }))
+      .filter((t: { count: number }) => t.count > 0)
+      .sort((a: { count: number; tag: string }, b: { count: number; tag: string }) => {
         if (b.count !== a.count) return b.count - a.count;
         return a.tag.localeCompare(b.tag);
       });
