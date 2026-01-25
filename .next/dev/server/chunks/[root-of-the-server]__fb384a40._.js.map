@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 124, "column": 0}, "map": {"version":3,"sources":["file:///Users/austinlord/code/cookbook/app/api/test/route.ts"],"sourcesContent":["import { createClient } from '@vercel/postgres';\nimport { NextResponse } from 'next/server';\n\nexport async function GET() {\n  try {\n    const client = createClient({\n      connectionString: process.env.POSTGRES_URL,\n    });\n    await client.connect();\n    const result = await client.query('SELECT NOW()');\n    await client.end();\n    return NextResponse.json({ success: true, time: result.rows[0] });\n  } catch (error) {\n    console.error('Database error:', error);\n    return NextResponse.json({ \n      error: 'Database connection failed',\n      details: error instanceof Error ? error.message : 'Unknown error'\n    }, { status: 500 });\n  }\n}"],"names":[],"mappings":";;;;AAAA;AAAA;AACA;;;AAEO,eAAe;IACpB,IAAI;QACF,MAAM,SAAS,IAAA,+MAAY,EAAC;YAC1B,kBAAkB,QAAQ,GAAG,CAAC,YAAY;QAC5C;QACA,MAAM,OAAO,OAAO;QACpB,MAAM,SAAS,MAAM,OAAO,KAAK,CAAC;QAClC,MAAM,OAAO,GAAG;QAChB,OAAO,4JAAY,CAAC,IAAI,CAAC;YAAE,SAAS;YAAM,MAAM,OAAO,IAAI,CAAC,EAAE;QAAC;IACjE,EAAE,OAAO,OAAO;QACd,QAAQ,KAAK,CAAC,mBAAmB;QACjC,OAAO,4JAAY,CAAC,IAAI,CAAC;YACvB,OAAO;YACP,SAAS,iBAAiB,QAAQ,MAAM,OAAO,GAAG;QACpD,GAAG;YAAE,QAAQ;QAAI;IACnB;AACF"}}]
+}

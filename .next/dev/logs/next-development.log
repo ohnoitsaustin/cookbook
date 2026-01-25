@@ -1,0 +1,74 @@
+[00:00:00.578] Server  LOG     ✓ Ready in 444ms
+[00:00:00.870] Server  ERROR   ⨯ ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+
+
+[00:00:01.065] Browser ERROR   uncaughtError: Error: ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+
+
+[00:00:01.254] Browser ERROR   ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+[00:00:01.254] Browser ERROR   ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+[00:00:12.592] Server  ERROR   ⨯ ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+
+
+[00:00:12.743] Browser ERROR   uncaughtError: Error: ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+
+
+[00:00:13.017] Browser ERROR   ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+[00:00:13.017] Browser ERROR   ./cookbook/app/recipes/page.tsx:51:28
+Parsing ecmascript source code failed
+  49 |       <form onSubmit={handleSubmit} className="space-y-6">
+  50 |         <div>
+> 51 |           <label className="block mb
+     |                            ^^^^^^^^^
+
+Unterminated string constant
+[00:01:46.468] Server  LOG     ✓ Compiled in 31ms

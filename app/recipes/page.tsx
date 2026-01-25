@@ -1,0 +1,145 @@
+'use client';
+
+import { useState } from 'react';
+
+export default function RecipesPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    ingredients: '',
+    instructions: '',
+    prep_time: '',
+    cook_time: '',
+    season: 'any',
+    temperature_preference: 'any'
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const response = await fetch('/api/recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...formData,
+        ingredients: formData.ingredients.split('\n').filter(i => i.trim()),
+        prep_time: parseInt(formData.prep_time) || null,
+        cook_time: parseInt(formData.cook_time) || null,
+      })
+    });
+
+    if (response.ok) {
+      alert('Recipe added!');
+      setFormData({
+        name: '',
+        ingredients: '',
+        instructions: '',
+        prep_time: '',
+        cook_time: '',
+        season: 'any',
+        temperature_preference: 'any'
+      });
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-8">
+      <h1 className="text-3xl font-bold mb-8">Add a Recipe</h1>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block mb-2 font-medium">Recipe Name</label>
+          <input
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 font-medium">Ingredients (one per line)</label>
+          <textarea
+            required
+            rows={6}
+            value={formData.ingredients}
+            onChange={(e) => setFormData({...formData, ingredients: e.target.value})}
+            className="w-full p-2 border rounded"
+            placeholder="2 cups flour"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 font-medium">Instructions</label>
+          <textarea
+            required
+            rows={8}
+            value={formData.instructions}
+            onChange={(e) => setFormData({...formData, instructions: e.target.value})}
+            className="w-full p-2 border rounded"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block mb-2 font-medium">Prep Time (minutes)</label>
+            <input
+              type="number"
+              value={formData.prep_time}
+              onChange={(e) => setFormData({...formData, prep_time: e.target.value})}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">Cook Time (minutes)</label>
+            <input
+              type="number"
+              value={formData.cook_time}
+              onChange={(e) => setFormData({...formData, cook_time: e.target.value})}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block mb-2 font-medium">Season</label>
+            <select
+              value={formData.season}
+              onChange={(e) => setFormData({...formData, season: e.target.value})}
+              className="w-full p-2 border rounded"
+            >
+              <option value="any">Any</option>
+              <option value="spring">Spring</option>
+              <option value="summer">Summer</option>
+              <option value="fall">Fall</option>
+              <option value="winter">Winter</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-2 font-medium">Temperature</label>
+            <select
+              value={formData.temperature_preference}
+              onChange={(e) => setFormData({...formData, temperature_preference: e.target.value})}
+              className="w-full p-2 border rounded"
+            >
+              <option value="any">Any</option>
+              <option value="hot">Hot</option>
+              <option value="cold">Cold</option>
+              <option value="room-temp">Room Temp</option>
+            </select>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700"
+        >
+          Add Recipe
+        </button>
+      </form>
+    </div>
+  );
+}
