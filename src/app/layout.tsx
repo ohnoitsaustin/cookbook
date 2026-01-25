@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Ballet } from "next/font/google";
+import { Geist, Geist_Mono, Bonheur_Royale } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,11 +12,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const ballet = Ballet({
-  weight: '400',
-  subsets: ['latin'],
-  variable: '--font-ballet',
-});
+const bonheurRoyale = Bonheur_Royale({
+  variable: "--font-bonheur-royale",
+  subsets: ["latin"],
+  weight: "400"
+})
 
 export const metadata: Metadata = {
   title: "Lord Family Cookbook",
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${ballet.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bonheurRoyale.variable} antialiased`}
       >
         {children}
       </body>

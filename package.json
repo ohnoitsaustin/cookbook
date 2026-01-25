@@ -10,12 +10,18 @@
   },
   "dependencies": {
     "@vercel/postgres": "^0.10.0",
+    "cloudinary": "^2.9.0",
+    "jsdom": "^27.4.0",
+    "lucide-react": "^0.563.0",
     "next": "16.1.4",
+    "next-cloudinary": "^6.17.5",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "recipe-scraper": "^2.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
