@@ -21,42 +21,48 @@ export default function RecipesPage() {
   const [uploading, setUploading] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
-    const response = await fetch('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...formData,
-        ingredients: formData.ingredients.split('\n').filter(i => i.trim()),
-        prep_time: parseInt(formData.prep_time) || null,
-        cook_time: parseInt(formData.cook_time) || null,
-        season: formData.seasons.length > 0 ? formData.seasons : ['any'],
-        image_url: formData.image_url,
-        tags: formData.tags,
-      })
-    });
-
-    if (response.ok) {
-      setShowSuccess(true);
-      setFormData({
-        name: '',
-        ingredients: '',
-        instructions: '',
-        prep_time: '',
-        cook_time: '',
-        seasons: [],
-        image_url: null,
-        tags: [],
+    try {
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          ingredients: formData.ingredients.split('\n').filter(i => i.trim()),
+          prep_time: parseInt(formData.prep_time) || null,
+          cook_time: parseInt(formData.cook_time) || null,
+          season: formData.seasons,
+          image_url: formData.image_url,
+          tags: formData.tags,
+        })
       });
 
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (response.ok) {
+        setShowSuccess(true);
+        setFormData({
+          name: '',
+          ingredients: '',
+          instructions: '',
+          prep_time: '',
+          cook_time: '',
+          seasons: [],
+          image_url: null,
+          tags: [],
+        });
 
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 5000);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 5000);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -280,9 +286,10 @@ export default function RecipesPage() {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700"
+          disabled={submitting}
+          className="w-full bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          add recipe
+          {submitting ? 'Adding recipe...' : 'add recipe'}
         </button>
       </form>
     </div>

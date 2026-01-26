@@ -114,7 +114,33 @@ export async function findOrCreateTag(name: string): Promise<string> {
   }
 }
 
-// Find season record by name
+// Find or create a season record
+export async function findOrCreateSeason(name: string): Promise<string> {
+  try {
+    const normalizedName = name.toLowerCase().trim();
+
+    // Search for existing season (case-insensitive)
+    const records = await seasonsTable
+      .select({
+        filterByFormula: `LOWER({Name}) = '${normalizedName.replace(/'/g, "\\'")}'`,
+        maxRecords: 1,
+      })
+      .firstPage();
+
+    if (records.length > 0) {
+      return records[0].id;
+    }
+
+    // Create new season
+    const newRecord = await seasonsTable.create({ Name: normalizedName });
+    return newRecord.id;
+  } catch (error) {
+    console.error('Error finding/creating season:', error);
+    throw error;
+  }
+}
+
+// Find season record by name (deprecated, use findOrCreateSeason)
 export async function findSeasonId(seasonName: string): Promise<string | null> {
   try {
     const records = await seasonsTable
@@ -166,7 +192,7 @@ export async function getRecipes(): Promise<Recipe[]> {
               const season = await seasonsTable.find(id);
               return season.fields.Name as string;
             } catch {
-              return 'any';
+              return '';
             }
           })
         );
@@ -191,7 +217,7 @@ export async function getRecipes(): Promise<Recipe[]> {
           instructions: fields.Instructions as string || '',
           prep_time: fields['Prep Time'] as number || null,
           cook_time: fields['Cook Time'] as number || null,
-          season: seasons.filter(s => s).length > 0 ? seasons.filter(s => s) : ['any'],
+          season: seasons.filter(s => s && s !== 'any'),
           image_url: fields['Image URL'] as string || null,
           tags: tags.filter(t => t),
         };
@@ -223,16 +249,24 @@ export async function getRecipe(id: string): Promise<Recipe | null> {
     const seasonIds = (fields.Seasons as string[]) || [];
     const seasons = await Promise.all(
       seasonIds.map(async (id) => {
-        const season = await seasonsTable.find(id);
-        return season.fields.Name as string;
+        try {
+          const season = await seasonsTable.find(id);
+          return season.fields.Name as string;
+        } catch {
+          return '';
+        }
       })
     );
 
     const tagIds = (fields.Tags as string[]) || [];
     const tags = await Promise.all(
       tagIds.map(async (id) => {
-        const tag = await tagsTable.find(id);
-        return tag.fields.Name as string;
+        try {
+          const tag = await tagsTable.find(id);
+          return tag.fields.Name as string;
+        } catch {
+          return '';
+        }
       })
     );
 
@@ -243,7 +277,7 @@ export async function getRecipe(id: string): Promise<Recipe | null> {
       instructions: fields.Instructions as string || '',
       prep_time: fields['Prep Time'] as number || null,
       cook_time: fields['Cook Time'] as number || null,
-      season: seasons.filter(s => s).length > 0 ? seasons.filter(s => s) : ['any'],
+      season: seasons.filter(s => s && s !== 'any'),
       image_url: fields['Image URL'] as string || null,
       tags: tags.filter(t => t),
     };
@@ -270,12 +304,9 @@ export async function createRecipe(data: {
       data.ingredients.map(ing => findOrCreateIngredient(ing))
     );
 
-    // Find season record IDs
+    // Create or find season records
     const seasonIds = await Promise.all(
-      data.season.map(async (s) => {
-        const id = await findSeasonId(s);
-        return id || await findSeasonId('any');
-      })
+      data.season.map(s => findOrCreateSeason(s))
     );
 
     // Create or find tag records
@@ -291,7 +322,7 @@ export async function createRecipe(data: {
       'Cook Time': data.cook_time,
       'Image URL': data.image_url || '',
       Ingredients: ingredientIds,
-      Seasons: seasonIds.filter(id => id) as string[],
+      Seasons: seasonIds,
       Tags: tagIds,
     });
 
@@ -323,12 +354,9 @@ export async function updateRecipe(
       data.ingredients.map(ing => findOrCreateIngredient(ing))
     );
 
-    // Find season record IDs
+    // Create or find season records
     const seasonIds = await Promise.all(
-      data.season.map(async (s) => {
-        const id = await findSeasonId(s);
-        return id || await findSeasonId('any');
-      })
+      data.season.map(s => findOrCreateSeason(s))
     );
 
     // Create or find tag records
@@ -338,16 +366,14 @@ export async function updateRecipe(
 
     // Update recipe record
     await recipesTable.update(id, {
-      fields: {
-        Name: data.name,
-        Instructions: data.instructions,
-        'Prep Time': data.prep_time,
-        'Cook Time': data.cook_time,
-        'Image URL': data.image_url || '',
-        Ingredients: ingredientIds,
-        Seasons: seasonIds.filter(id => id) as string[],
-        Tags: tagIds,
-      }
+      Name: data.name,
+      Instructions: data.instructions,
+      'Prep Time': data.prep_time,
+      'Cook Time': data.cook_time,
+      'Image URL': data.image_url || '',
+      Ingredients: ingredientIds,
+      Seasons: seasonIds,
+      Tags: tagIds,
     });
 
     // Fetch and return the updated recipe with linked data

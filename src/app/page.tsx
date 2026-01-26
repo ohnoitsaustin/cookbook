@@ -18,17 +18,26 @@ export default function HomePage() {
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [spinningRecipeName, setSpinningRecipeName] = useState<string>('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const handleUpdate = async (updatedRecipe: Recipe) => {
-    const response = await fetch('/api/recipes', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedRecipe),
-    });
+    setIsUpdating(true);
+    try {
+      const response = await fetch('/api/recipes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...updatedRecipe,
+          season: updatedRecipe.season.filter(s => s !== 'any'),
+        }),
+      });
 
-    if (response.ok) {
-      setEditingRecipe(null);
-      fetchRecipes();
+      if (response.ok) {
+        setEditingRecipe(null);
+        fetchRecipes();
+      }
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -61,7 +70,7 @@ export default function HomePage() {
     // Season filter
     if (seasonFilter !== 'any') {
       filtered = filtered.filter(r =>
-        r.season.includes(seasonFilter) || r.season.includes('any')
+        r.season.length === 0 || r.season.includes(seasonFilter)
       );
     }
 
@@ -148,24 +157,28 @@ export default function HomePage() {
 
       {/* Wheel Spinner Section */}
       <div className="bg-gray-50 p-8 rounded-lg mb-8">
-        <h2 className="text-2xl mb-4 text-center">what's for dinner this {seasonFilter} day?</h2>
+        {
+          recipes.length > 0 &&
+          <>
+            <h2 className="text-2xl mb-4 text-center">what's for dinner this {seasonFilter} day?</h2>
 
-        <div className="text-center">
-          <button
-            onClick={spinWheel}
-            disabled={isSpinning}
-            className="bg-deep-blue text-white px-8 py-4 rounded-lg text-xl font-bold disabled:bg-gray-400 transition-all transform hover:scale-105"
-          >
-            {isSpinning ? '🎡 spinning...' : <><span className="wiggle-emoji">🧄</span> spin the wheel!</>}
-          </button>
+            <div className="text-center">
 
+              <button
+                onClick={spinWheel}
+                disabled={isSpinning}
+                className="bg-deep-blue text-white px-8 py-4 rounded-lg text-xl font-bold disabled:bg-gray-400 transition-all transform hover:scale-105"
+              >
+                {isSpinning ? '🎡 spinning...' : <><span className="wiggle-emoji">🧄</span> spin the wheel!</>}
+              </button>
 
-
-
-          <p className="mt-4 text-gray-600">
-            {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} available
-          </p>
-        </div>
+              <p className="mt-4 text-gray-600">
+                {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} available &bull;{' '}
+                {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} total
+              </p>
+            </div>
+          </>
+        }
         {isSpinning && spinningRecipeName && (
           <div className="mt-6 p-6 bg-white rounded-lg shadow-md min-h-[80px] flex items-center justify-center">
             <p className="text-3xl font-bold text-deep-blue">
@@ -217,6 +230,14 @@ export default function HomePage() {
             {filteredRecipes.map((recipe) => (
               <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
             ))}
+            {filteredRecipes.length != recipes.length &&
+              <hr className="my-4 border-gray-300" />
+            }
+            {
+              recipes.filter(r => !filteredRecipes.map(r => r.id).includes(r.id)).map(recipe =>
+                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
+              )
+            }
             <div className="text-center my-8">
               <Link href="/add" className="hover:underline">add a recipe</Link>
             </div>
@@ -224,7 +245,7 @@ export default function HomePage() {
         )}
       </div>
       {editingRecipe && (
-        <RecipeEditModal editingRecipe={editingRecipe} setEditingRecipe={setEditingRecipe} onClose={() => setEditingRecipe(null)} onUpdate={handleUpdate} />
+        <RecipeEditModal editingRecipe={editingRecipe} setEditingRecipe={setEditingRecipe} onClose={() => setEditingRecipe(null)} onUpdate={handleUpdate} isUpdating={isUpdating} />
       )}
     </div>
   );

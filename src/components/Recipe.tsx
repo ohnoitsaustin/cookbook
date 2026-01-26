@@ -6,8 +6,7 @@ const seasonEmojis: Record<string, string> = {
     spring: '🌸',
     summer: '☀️',
     fall: '🍂',
-    winter: '❄️',
-    any: '🗓️'
+    winter: '❄️'
 };
 
 type Props = {
@@ -20,6 +19,7 @@ type Props = {
 
 export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, layout }: Props) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleEdit = (recipe: Recipe) => {
         setEditingRecipe(recipe);
@@ -28,17 +28,22 @@ export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this recipe?')) return;
 
-        const response = await fetch(`/api/recipes?id=${id}`, {
-            method: 'DELETE',
-        });
+        setIsDeleting(true);
+        try {
+            const response = await fetch(`/api/recipes?id=${id}`, {
+                method: 'DELETE',
+            });
 
-        if (response.ok) {
-            fetchRecipes?.();
+            if (response.ok) {
+                fetchRecipes?.();
+            }
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const layoutClass = layout === 'preview' ? 'flex flex-col sm:flex-row' : '';
-    const imgContainerClass = layout === 'preview' ? 'w-full sm:w-48 h-38 flex-shrink-0 overflow-hidden' : '';
+    const imgContainerClass = layout === 'preview' ? 'w-full sm:w-48 flex-shrink-0 overflow-hidden' : '';
     const imgClass = layout === 'preview' ? 'w-full h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-t-none' : 'h-full rounded-lg';
 
     return <div key={recipe.id} className={`${className} ${layoutClass} bg-white`}>
@@ -53,30 +58,34 @@ export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, 
         )}
         <div className="flex-grow p-4">
             <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold">{recipe.name}</h3>
+                <h3 className="text-5xl font-bonheur-royale">{recipe.name}</h3>
                 <div className="flex gap-2">
                     <button
                         onClick={() => handleEdit(recipe)}
-                        className="text-gray-600 hover:text-gray-400 p-1"
+                        disabled={isDeleting}
+                        className="text-gray-600 hover:text-gray-400 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Edit recipe"
                     >
                         <Pencil size={18} />
                     </button>
                     <button
                         onClick={() => handleDelete(recipe.id)}
-                        className="text-gray-600 hover:text-gray-400 p-1"
+                        disabled={isDeleting}
+                        className="text-gray-600 hover:text-gray-400 p-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Delete recipe"
                     >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} className={isDeleting ? 'animate-pulse' : ''} />
                     </button>
                 </div>
             </div>
             <div className="flex gap-4 text-sm text-gray-600 mb-2">
                 {recipe.prep_time && <span>prep: {recipe.prep_time} min</span>}
                 {recipe.cook_time && <span>cook: {recipe.cook_time} min</span>}
-                <span className="flex items-center gap-1">
-                    {recipe.season.map(s => seasonEmojis[s] || s).join(' ')}
-                </span>
+                {recipe.season.length > 0 && (
+                    <span className="flex items-center gap-1">
+                        {recipe.season.map(s => seasonEmojis[s] || s).join(' ')}
+                    </span>
+                )}
             </div>
             {recipe.tags && recipe.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">

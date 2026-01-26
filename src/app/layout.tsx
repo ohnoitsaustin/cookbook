@@ -21,6 +21,9 @@ const bonheurRoyale = Bonheur_Royale({
 export const metadata: Metadata = {
   title: "Lord Family Cookbook",
   description: "A collection of things to nourish ourselves.",
+  icons: {
+    icon: '/fork-and-knife.svg',
+  },
 };
 
 export default function RootLayout({

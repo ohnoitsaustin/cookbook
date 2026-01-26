@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Recipe } from "@/src/lib/airtable";
 import { TagInput } from "@/src/components/TagInput";
 
-export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void }) => {
+export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe, isUpdating }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void, isUpdating: boolean }) => {
     const [uploading, setUploading] = useState(false);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,14 +172,16 @@ export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRe
                     <div className="flex gap-4">
                         <button
                             type="submit"
-                            className="flex-1 bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700"
+                            disabled={isUpdating}
+                            className="flex-1 bg-blue-600 text-white py-3 rounded font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            Save Changes
+                            {isUpdating ? 'Saving...' : 'Save Changes'}
                         </button>
                         <button
                             type="button"
                             onClick={() => setEditingRecipe(null)}
-                            className="flex-1 bg-gray-300 text-gray-700 py-3 rounded font-medium hover:bg-gray-400"
+                            disabled={isUpdating}
+                            className="flex-1 bg-gray-300 text-gray-700 py-3 rounded font-medium hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Cancel
                         </button>
