@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Loader from '../components/Loader';
 import { getCurrentSeason } from '../utils/utils';
-import { RecipeCard } from './Recipe';
+import { RecipeCard } from '../components/Recipe';
 import type { Recipe } from '@/src/lib/airtable';
-import { RecipeEditModal } from './RecipeEditModal';
+import { RecipeEditModal } from '../components/RecipeEditModal';
 import { Search } from 'lucide-react';
 
 export default function HomePage() {
