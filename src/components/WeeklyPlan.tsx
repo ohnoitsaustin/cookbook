@@ -179,7 +179,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
 
                                 <button
                                     onClick={() => handleSpin(day.dateKey)}
-                                    className="w-full h-full text-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                                    className="ml-6 sm:ml-0 w-full h-full text-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
                                     aria-label="Random recipe"
                                 >
                                     🎲
