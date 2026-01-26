@@ -129,52 +129,64 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 <Trash2 size={12} />
                             </button>
                         )}
-                        {plan?.recipe?.image_url && (
-                            <div className="h-full w-24 block sm:hidden rounded-l-sm overflow-hidden">
+                        <div className="h-full w-24 block sm:hidden rounded-l-sm overflow-hidden">
+                            {plan?.recipe?.image_url && (
                                 <img
                                     src={plan.recipe.image_url}
                                     alt={plan.recipe.name}
                                     className="object-fill h-full rounded-l-sm"
                                 />
-                            </div>
-                        )}
-                        <div className="mb-0 sm:mb-1 m-2 sm:m-0 text-left w-10">
+                            )}
+                            {plan?.recipe?.image_url == null && (
+                                <div className="bg-gray-300 w-full h-full" />
+                            )}
+                        </div>
+                        <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
                             <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-400'}`}>{day.label}</h3>
                             <p className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-400'}`}>{day.shortDisplay}</p>
-                            {day.isToday && <p className="text-xs block sm:hidden mb-2">Today</p>}
+                            {day.isToday && <p className="text-xs block sm:hidden">Today</p>}
                         </div>
-                        <div className="flex-grow flex text-left sm:text-center">
-                            {plan && plan.recipe ? (
-                                <div className="w-full text-left sm:text-center my-2 pr-4 sm:pr-0">
-                                    {plan.recipe.image_url && (
-                                        <img
-                                            src={plan.recipe.image_url}
-                                            alt={plan.recipe.name}
-                                            className="w-full hidden sm:block h-12 object-cover rounded mb-1"
-                                        />
-                                    )}
-                                    <p className="text-lg sm:text-xs font-medium leading-tight" title={plan.recipe.name}>
-                                        {plan.recipe.name}
-                                    </p>
-                                </div>
-                            ) : isSpinning ? (
-                                <p className="text-xs font-medium text-deep-blue truncate w-full h-full leading-24">
-                                    {spinningDates[day.dateKey]}
+
+                        {plan && plan.recipe && (
+                            <div className="w-full text-left sm:text-center my-2 pr-4 sm:pr-0">
+                                {plan.recipe.image_url && (
+                                    <img
+                                        src={plan.recipe.image_url}
+                                        alt={plan.recipe.name}
+                                        className="w-full hidden sm:block h-12 object-cover rounded mb-1"
+                                    />
+                                )}
+                                <p className="text-lg sm:text-xs font-medium leading-tight" title={plan.recipe.name}>
+                                    {plan.recipe.name}
                                 </p>
-                            ) : isDragging ? (
-                                <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300">
-                                    <Plus size={20} />
-                                </div>
-                            ) : (
+                                {plan.recipe.prep_time && <p className="text-xs text-gray-500">prep: {plan.recipe.prep_time} mins</p>}
+                                {plan.recipe.cook_time && <p className="text-xs text-gray-500">cook: {plan.recipe.cook_time} mins</p>}
+                            </div>
+                        )}
+                        {isSpinning && (
+                            <p className="text-xs font-medium text-deep-blue truncate w-full h-full leading-24">
+                                {spinningDates[day.dateKey]}
+                            </p>
+                        )}
+                        {isDragging && (
+                            <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 mx-auto my-auto flex items-center justify-center text-gray-300">
+                                <Plus size={20} />
+                            </div>
+                        )}
+
+                        {plan?.recipe == null && !isSpinning && !isDragging &&
+                            (
+
                                 <button
                                     onClick={() => handleSpin(day.dateKey)}
-                                    className="w-full text-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                                    className="w-full h-full text-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
                                     aria-label="Random recipe"
                                 >
                                     🎲
                                 </button>
-                            )}
-                        </div>
+
+                            )
+                        }
                     </div>
                 );
             })}
