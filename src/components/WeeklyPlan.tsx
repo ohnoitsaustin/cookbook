@@ -101,7 +101,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     };
 
     return <div className="mb-8">
-        <h2 className="mb-2 text-4xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
+        <h2 className="mb-2 text-5xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
         <div className="flex flex-col sm:grid sm:grid-cols-7 gap-1">
             {daysOfTheWeek.map((day) => {
                 const plan = plansByDate[day.dateKey];
