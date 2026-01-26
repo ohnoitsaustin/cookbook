@@ -24,8 +24,8 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const now = new Date();
     const monday = new Date(now);
     const dayOfWeek = monday.getDay();
-    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    monday.setDate(monday.getDate() - daysToMonday);
+    const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
+    monday.setDate(monday.getDate() - daysToSunday);
     monday.setHours(0, 0, 0, 0);
 
     const daysOfTheWeek = Array.from({ length: 7 }, (_, i) => {
@@ -34,8 +34,9 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
         const dateKey = formatDateKey(date);
         return {
             dateKey,
-            displayDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            label: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][i],
+            longDisplay: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+            shortDisplay: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            label: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][i],
             isToday: formatDateKey(now) === dateKey,
         };
     });
@@ -100,18 +101,19 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     };
 
     return <div className="mb-8">
-        <h2 className="mb-2 text-4xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].displayDate}</h2>
-        <div className="grid grid-cols-7 gap-1">
+        <h2 className="mb-2 text-4xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
+        <div className="flex flex-col sm:grid sm:grid-cols-7 gap-1">
             {daysOfTheWeek.map((day) => {
                 const plan = plansByDate[day.dateKey];
                 const isDragOver = dragOverDate === day.dateKey;
                 const isSpinning = day.dateKey in spinningDates;
+                const className = ['sun', 'sat'].includes(day.label) ? '' : '';
 
                 return (
                     <div
                         key={day.dateKey}
-                        className={`group relative text-center p-2 border rounded-lg transition-colors min-h-[120px] flex flex-col justify-start
-                            ${day.isToday ? 'border-deep-blue border-2' : 'border-gray-300'}
+                        className={`group relative text-center p-none sm:p-2 border rounded-lg transition-colors grid grid-flow-col auto-rows-auto sm:flex sm:flex-col justify-start
+                            ${day.isToday ? 'border-deep-blue border-2 shadow-lg' : 'border-gray-300'}
                             ${isDragOver ? 'border-deep-blue bg-light-blue/20 border-2' : ''}
                         `}
                         onDragOver={(e) => handleDragOver(e, day.dateKey)}
@@ -121,28 +123,37 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                         {plan && plan.recipe && (
                             <button
                                 onClick={() => onRemovePlan(plan)}
-                                className="absolute top-1 right-1 p-0.5 rounded text-gray-300 hover:text-red-500 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
+                                className="absolute top-1 right-1 p-0.5 rounded text-gray-300 hover:text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
                                 aria-label="Remove meal"
                             >
                                 <Trash2 size={12} />
                             </button>
                         )}
-                        <div className="mb-1">
+                        {plan?.recipe?.image_url && (
+                            <div className="h-full w-24 block sm:hidden rounded-l-sm overflow-hidden">
+                                <img
+                                    src={plan.recipe.image_url}
+                                    alt={plan.recipe.name}
+                                    className="object-fill h-full rounded-l-sm"
+                                />
+                            </div>
+                        )}
+                        <div className="mb-0 sm:mb-1 m-2 sm:m-0 text-left w-10">
                             <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-400'}`}>{day.label}</h3>
-                            <span className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-400'}`}>{day.displayDate}</span>
+                            <p className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-400'}`}>{day.shortDisplay}</p>
+                            {day.isToday && <p className="text-xs block sm:hidden mb-2">Today</p>}
                         </div>
-
-                        <div className="flex-grow flex">
+                        <div className="flex-grow flex text-left sm:text-center">
                             {plan && plan.recipe ? (
-                                <div className="w-full">
+                                <div className="w-full text-left sm:text-center my-2 pr-4 sm:pr-0">
                                     {plan.recipe.image_url && (
                                         <img
                                             src={plan.recipe.image_url}
                                             alt={plan.recipe.name}
-                                            className="w-full h-12 object-cover rounded mb-1"
+                                            className="w-full hidden sm:block h-12 object-cover rounded mb-1"
                                         />
                                     )}
-                                    <p className="text-xs font-medium leading-tight" title={plan.recipe.name}>
+                                    <p className="text-lg sm:text-xs font-medium leading-tight" title={plan.recipe.name}>
                                         {plan.recipe.name}
                                     </p>
                                 </div>
@@ -164,15 +175,6 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 </button>
                             )}
                         </div>
-                        {plan && plan.recipe && (
-                            <button
-                                onClick={() => onRemovePlan(plan)}
-                                className="mt-2 bg-deep-blue text-white text-xs p-0.5 rounded text-gray-800 opacity-100 md:hidden  transition-opacity z-10"
-                                aria-label="Remove meal"
-                            >
-                                Clear
-                            </button>
-                        )}
                     </div>
                 );
             })}
