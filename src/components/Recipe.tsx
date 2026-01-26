@@ -46,7 +46,12 @@ export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, 
     const imgContainerClass = layout === 'preview' ? 'w-full sm:w-48 flex-shrink-0 overflow-hidden' : '';
     const imgClass = layout === 'preview' ? 'w-full h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-t-none' : 'h-full rounded-lg';
 
-    return <div key={recipe.id} className={`${className} ${layoutClass} bg-white`}>
+    const handleDragStart = (e: React.DragEvent) => {
+        e.dataTransfer.setData('recipeId', recipe.id);
+        e.dataTransfer.effectAllowed = 'copy';
+    };
+
+    return <div key={recipe.id} className={`${className} ${layoutClass} bg-white cursor-grab active:cursor-grabbing`} draggable onDragStart={handleDragStart}>
         {recipe.image_url && (
             <div className={imgContainerClass}>
                 <img

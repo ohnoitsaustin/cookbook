@@ -5,9 +5,10 @@ import Link from 'next/link';
 import Loader from '../components/Loader';
 import { getCurrentSeason } from '../utils/utils';
 import { RecipeCard } from '../components/Recipe';
-import type { Recipe } from '@/src/lib/airtable';
+import type { Recipe, Plan } from '@/src/lib/airtable';
 import { RecipeEditModal } from '../components/RecipeEditModal';
 import { Search } from 'lucide-react';
+import { WeeklyPlan } from '../components/WeeklyPlan';
 
 export default function HomePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [spinningRecipeName, setSpinningRecipeName] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [plans, setPlans] = useState<Plan[]>([]);
 
   const handleUpdate = async (updatedRecipe: Recipe) => {
     setIsUpdating(true);
@@ -43,6 +45,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchRecipes();
+    fetchPlans();
   }, []);
 
   const fetchRecipes = async () => {
@@ -50,6 +53,35 @@ export default function HomePage() {
     const data = await response.json();
     setRecipes(data);
     setIsLoadingRecipes(false);
+  };
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch('/api/plans');
+      const data = await response.json();
+      setPlans(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch plans:', error);
+      setPlans([]);
+    }
+  };
+
+  const handleDropRecipe = async (date: string, recipeId: string) => {
+    // Optimistic update
+    const recipe = recipes.find(r => r.id === recipeId) || null;
+    setPlans(prev => [...prev.filter(p => p.date !== date), { id: 'temp', date, recipe, notes: '' }]);
+
+    try {
+      await fetch('/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, recipeId, notes: '' }),
+      });
+      fetchPlans();
+    } catch (error) {
+      console.error('Failed to create plan:', error);
+      fetchPlans();
+    }
   };
 
   const filteredRecipes = useMemo(() => {
@@ -160,10 +192,8 @@ export default function HomePage() {
         {
           recipes.length > 0 &&
           <>
-            <h2 className="text-2xl mb-4 text-center">what's for dinner this {seasonFilter} day?</h2>
-
             <div className="text-center">
-
+              <WeeklyPlan plans={plans} onDropRecipe={handleDropRecipe} />
               <button
                 onClick={spinWheel}
                 disabled={isSpinning}

@@ -4,36 +4,12 @@ import Airtable from 'airtable';
 const airtable = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY });
 const base = airtable.base(process.env.AIRTABLE_BASE_ID!);
 
-// Define field interfaces for proper TypeScript typing
-interface RecipeFields {
-  Name: string;
-  Instructions: string;
-  'Prep Time': number | null;
-  'Cook Time': number | null;
-  'Image URL': string;
-  Ingredients: string[]; // Linked ingredient record IDs
-  Seasons: string[]; // Linked season record IDs
-  Tags: string[]; // Linked tag record IDs
-}
-
-interface IngredientFields {
-  Name: string;
-}
-
-interface SeasonFields {
-  Name: string;
-}
-
-interface TagFields {
-  Name: string;
-  Recipes: string[]; // Linked recipes
-}
-
 // Table references (using type assertions for Airtable.js v0.12)
 const recipesTable = base(process.env.AIRTABLE_TABLE_RECIPES!) as any;
 const ingredientsTable = base(process.env.AIRTABLE_TABLE_INGREDIENTS!) as any;
 const seasonsTable = base(process.env.AIRTABLE_TABLE_SEASONS!) as any;
 const tagsTable = base(process.env.AIRTABLE_TABLE_TAGS!) as any;
+const plansTable = base(process.env.AIRTABLE_TABLE_PLANS!) as any;
 
 export type Recipe = {
   id: string;
@@ -47,21 +23,11 @@ export type Recipe = {
   tags: string[];
 };
 
-// Transform Airtable record to Recipe type
-function transformAirtableRecipe(record: any): Recipe {
-  const fields = record.fields;
-
-  return {
-    id: record.id,
-    name: fields.Name || '',
-    ingredients: fields.Ingredients || [],
-    instructions: fields.Instructions || '',
-    prep_time: fields['Prep Time'] || null,
-    cook_time: fields['Cook Time'] || null,
-    season: fields.Seasons || ['any'],
-    image_url: fields['Image URL'] || null,
-    tags: fields.Tags || [],
-  };
+export type Plan = {
+  id: string;
+  date: string;
+  recipe: Recipe | null;
+  notes: string;
 }
 
 // Find or create an ingredient record
@@ -413,6 +379,105 @@ export async function getTags(): Promise<{ tag: string; count: number }[]> {
     return tagsWithCounts;
   } catch (error) {
     console.error('Error fetching tags:', error);
+    throw error;
+  }
+}
+
+// Create a new plan
+export async function createPlan(data: {
+  date: string;
+  recipeId: string;
+  notes: string;
+}): Promise<Plan> {
+  try {
+    const record = await plansTable.create({
+      Date: data.date,
+      Recipes: [data.recipeId],
+      Notes: data.notes,
+    });
+
+    return (await getPlan(record.id))!;
+  } catch (error) {
+    console.error('Error creating plan:', error);
+    throw error;
+  }
+}
+
+// get a plan
+export async function getPlan(id: string): Promise<Plan | null> {
+  try {
+    const record = await plansTable.find(id);
+    const recipeIds = (record.fields.Recipes as string[]) || [];
+    return {
+      id: record.id,
+      date: record.fields.Date as string,
+      recipe: recipeIds.length > 0 ? await getRecipe(recipeIds[0]) : null,
+      notes: (record.fields.Notes as string) || '',
+    }
+  } catch (error) {
+    console.error('Error fetching plan:', error);
+    throw error;
+  }
+}
+
+// get plans by date
+export async function getPlans(minDate?: string, maxDate?: string): Promise<Plan[]> {
+  try {
+    const selectOptions: any = {
+      sort: [{ field: 'Date', direction: 'asc' }],
+    };
+    if (minDate && maxDate) {
+      selectOptions.filterByFormula = `AND({Date} >= '${minDate}', {Date} <= '${maxDate}')`;
+    }
+
+    const records = await plansTable.select(selectOptions).all();
+
+    return await Promise.all(
+      records.map(async (record: typeof records[0]) => {
+        const recipeIds = (record.fields.Recipes as string[]) || [];
+        return {
+          id: record.id,
+          date: record.fields.Date as string,
+          recipe: recipeIds.length > 0 ? await getRecipe(recipeIds[0]) : null,
+          notes: (record.fields.Notes as string) || '',
+        };
+      })
+    );
+  } catch (error) {
+    console.error('Error fetching plans:', error);
+    throw error;
+  }
+}
+
+// update a plan
+export async function updatePlan(
+  id: string,
+  data: {
+    date: string;
+    recipeId?: string;
+    notes?: string;
+  }
+): Promise<Plan> {
+  try {
+    await plansTable.update(id, {
+      Date: data.date,
+      Recipes: data.recipeId ? [data.recipeId] : [],
+      Notes: data.notes || '',
+    });
+
+    return (await getPlan(id))!;
+  } catch (error) {
+    console.error('Error updating plan:', error);
+    throw error;
+  }
+}
+
+// delete a plan
+export async function deletePlan(id: string): Promise<void> {
+  try {
+    await plansTable.destroy(id);
+  } catch (error) {
+    console.error('Error deleting plan:', error);
     throw error;
   }
 }
