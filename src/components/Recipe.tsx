@@ -2,6 +2,20 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Recipe } from "@/src/lib/airtable";
 
+let dragIconEl: HTMLImageElement | null = null;
+function getDragIcon(): HTMLImageElement {
+    if (!dragIconEl) {
+        dragIconEl = document.createElement('img');
+        dragIconEl.src = '/fork-and-knife.svg';
+        dragIconEl.style.width = '32px';
+        dragIconEl.style.height = '32px';
+        dragIconEl.style.position = 'absolute';
+        dragIconEl.style.top = '-9999px';
+        document.body.appendChild(dragIconEl);
+    }
+    return dragIconEl;
+}
+
 const seasonEmojis: Record<string, string> = {
     spring: '🌸',
     summer: '☀️',
@@ -43,12 +57,13 @@ export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, 
     };
 
     const layoutClass = layout === 'preview' ? 'flex flex-col sm:flex-row' : '';
-    const imgContainerClass = layout === 'preview' ? 'w-full sm:w-48 flex-shrink-0 overflow-hidden' : '';
+    const imgContainerClass = layout === 'preview' ? 'w-full sm:w-48 h-48 sm:h-auto flex-shrink-0 overflow-hidden' : '';
     const imgClass = layout === 'preview' ? 'w-full h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-t-none' : 'h-full rounded-lg';
 
     const handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.setData('recipeId', recipe.id);
         e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setDragImage(getDragIcon(), 16, 16);
     };
 
     return <div key={recipe.id} className={`${className} ${layoutClass} bg-white cursor-grab active:cursor-grabbing`} draggable onDragStart={handleDragStart}>

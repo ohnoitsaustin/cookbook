@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
-import type { Plan } from '@/src/lib/airtable';
+import { Plus, Trash2 } from 'lucide-react';
+import type { Plan, Recipe } from '@/src/lib/airtable';
 
 function formatDateKey(date: Date): string {
     const y = date.getFullYear();
@@ -11,11 +11,15 @@ function formatDateKey(date: Date): string {
 
 type Props = {
     plans: Plan[];
+    recipes: Recipe[];
     onDropRecipe: (date: string, recipeId: string) => void;
+    onRemovePlan: (plan: Plan) => void;
+    isDragging: boolean;
 }
 
-export function WeeklyPlan({ plans, onDropRecipe }: Props): React.ReactElement {
+export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragging }: Props): React.ReactElement {
     const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+    const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
 
     const now = new Date();
     const monday = new Date(now);
@@ -60,17 +64,53 @@ export function WeeklyPlan({ plans, onDropRecipe }: Props): React.ReactElement {
         }
     };
 
+    const handleSpin = (dateKey: string) => {
+        if (recipes.length === 0 || spinningDates[dateKey]) return;
+
+        setSpinningDates(prev => ({ ...prev, [dateKey]: '' }));
+
+        const finalIndex = Math.floor(Math.random() * recipes.length);
+        const finalRecipe = recipes[finalIndex];
+
+        let currentIndex = 0;
+        let spinCount = 0;
+        const totalSpins = 20;
+        const baseDelay = 20;
+
+        const spin = () => {
+            if (spinCount >= totalSpins) {
+                setSpinningDates(prev => {
+                    const next = { ...prev };
+                    delete next[dateKey];
+                    return next;
+                });
+                onDropRecipe(dateKey, finalRecipe.id);
+                return;
+            }
+
+            setSpinningDates(prev => ({ ...prev, [dateKey]: recipes[currentIndex].name }));
+            currentIndex = (currentIndex + 1) % recipes.length;
+            spinCount++;
+
+            const delay = baseDelay + (spinCount / totalSpins) * 200;
+            setTimeout(spin, delay);
+        };
+
+        spin();
+    };
+
     return <div className="mb-8">
-        <h2 className="mb-2">dinner this week</h2>
-        <div className="flex">
+        <h2 className="mb-2 text-4xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].displayDate}</h2>
+        <div className="grid grid-cols-7 gap-1">
             {daysOfTheWeek.map((day) => {
                 const plan = plansByDate[day.dateKey];
                 const isDragOver = dragOverDate === day.dateKey;
+                const isSpinning = day.dateKey in spinningDates;
 
                 return (
                     <div
                         key={day.dateKey}
-                        className={`w-1/7 text-center p-2 border rounded-lg m-1 transition-colors min-h-[120px] flex flex-col
+                        className={`group relative text-center p-2 border rounded-lg transition-colors min-h-[120px] flex flex-col justify-start
                             ${day.isToday ? 'border-deep-blue border-2' : 'border-gray-300'}
                             ${isDragOver ? 'border-deep-blue bg-light-blue/20 border-2' : ''}
                         `}
@@ -78,12 +118,21 @@ export function WeeklyPlan({ plans, onDropRecipe }: Props): React.ReactElement {
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, day.dateKey)}
                     >
+                        {plan && plan.recipe && (
+                            <button
+                                onClick={() => onRemovePlan(plan)}
+                                className="absolute top-1 right-1 p-0.5 rounded text-gray-300 hover:text-red-500 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
+                                aria-label="Remove meal"
+                            >
+                                <Trash2 size={12} />
+                            </button>
+                        )}
                         <div className="mb-1">
                             <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-400'}`}>{day.label}</h3>
                             <span className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-400'}`}>{day.displayDate}</span>
                         </div>
 
-                        <div className="flex-grow flex items-center justify-center">
+                        <div className="flex-grow flex">
                             {plan && plan.recipe ? (
                                 <div className="w-full">
                                     {plan.recipe.image_url && (
@@ -93,16 +142,37 @@ export function WeeklyPlan({ plans, onDropRecipe }: Props): React.ReactElement {
                                             className="w-full h-12 object-cover rounded mb-1"
                                         />
                                     )}
-                                    <p className="text-xs font-medium leading-tight truncate" title={plan.recipe.name}>
+                                    <p className="text-xs font-medium leading-tight" title={plan.recipe.name}>
                                         {plan.recipe.name}
                                     </p>
                                 </div>
-                            ) : (
+                            ) : isSpinning ? (
+                                <p className="text-xs font-medium text-deep-blue truncate w-full h-full leading-24">
+                                    {spinningDates[day.dateKey]}
+                                </p>
+                            ) : isDragging ? (
                                 <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-300">
                                     <Plus size={20} />
                                 </div>
+                            ) : (
+                                <button
+                                    onClick={() => handleSpin(day.dateKey)}
+                                    className="w-full text-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                                    aria-label="Random recipe"
+                                >
+                                    🎲
+                                </button>
                             )}
                         </div>
+                        {plan && plan.recipe && (
+                            <button
+                                onClick={() => onRemovePlan(plan)}
+                                className="mt-2 bg-deep-blue text-white text-xs p-0.5 rounded text-gray-800 opacity-100 md:hidden  transition-opacity z-10"
+                                aria-label="Remove meal"
+                            >
+                                Clear
+                            </button>
+                        )}
                     </div>
                 );
             })}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Loader from '../components/Loader';
 import { getCurrentSeason } from '../utils/utils';
@@ -21,6 +21,9 @@ export default function HomePage() {
   const [spinningRecipeName, setSpinningRecipeName] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [isDraggingRecipe, setIsDraggingRecipe] = useState(false);
+  const [deletedPlan, setDeletedPlan] = useState<Plan | null>(null);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleUpdate = async (updatedRecipe: Recipe) => {
     setIsUpdating(true);
@@ -80,6 +83,46 @@ export default function HomePage() {
       fetchPlans();
     } catch (error) {
       console.error('Failed to create plan:', error);
+      fetchPlans();
+    }
+  };
+
+  const handleRemovePlan = async (plan: Plan) => {
+    // Store for undo
+    setDeletedPlan(plan);
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    undoTimeoutRef.current = setTimeout(() => setDeletedPlan(null), 5000);
+
+    // Optimistic removal
+    setPlans(prev => prev.filter(p => p.id !== plan.id));
+
+    try {
+      await fetch(`/api/plans?id=${plan.id}`, { method: 'DELETE' });
+    } catch (error) {
+      console.error('Failed to delete plan:', error);
+      fetchPlans();
+    }
+  };
+
+  const handleUndoDelete = async () => {
+    if (!deletedPlan?.recipe) return;
+    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+
+    const plan = deletedPlan;
+    setDeletedPlan(null);
+
+    // Optimistic re-add
+    setPlans(prev => [...prev, plan]);
+
+    try {
+      await fetch('/api/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: plan.date, recipeId: plan.recipe!.id, notes: plan.notes }),
+      });
+      fetchPlans();
+    } catch (error) {
+      console.error('Failed to undo delete:', error);
       fetchPlans();
     }
   };
@@ -188,24 +231,12 @@ export default function HomePage() {
       </div>
 
       {/* Wheel Spinner Section */}
-      <div className="bg-gray-50 p-8 rounded-lg mb-8">
+      <div className="bg-gray-50 py-8 md:px-8 rounded-lg mb-8">
         {
           recipes.length > 0 &&
           <>
             <div className="text-center">
-              <WeeklyPlan plans={plans} onDropRecipe={handleDropRecipe} />
-              <button
-                onClick={spinWheel}
-                disabled={isSpinning}
-                className="bg-deep-blue text-white px-8 py-4 rounded-lg text-xl font-bold disabled:bg-gray-400 transition-all transform hover:scale-105"
-              >
-                {isSpinning ? '🎡 spinning...' : <><span className="wiggle-emoji">🧄</span> spin the wheel!</>}
-              </button>
-
-              <p className="mt-4 text-gray-600">
-                {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} available &bull;{' '}
-                {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} total
-              </p>
+              <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} />
             </div>
           </>
         }
@@ -256,7 +287,7 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-4" onDragStart={() => setIsDraggingRecipe(true)} onDragEnd={() => setIsDraggingRecipe(false)}>
             {filteredRecipes.map((recipe) => (
               <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
             ))}
@@ -265,7 +296,7 @@ export default function HomePage() {
             }
             {
               recipes.filter(r => !filteredRecipes.map(r => r.id).includes(r.id)).map(recipe =>
-                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
+                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" />
               )
             }
             <div className="text-center my-8">
@@ -276,6 +307,19 @@ export default function HomePage() {
       </div>
       {editingRecipe && (
         <RecipeEditModal editingRecipe={editingRecipe} setEditingRecipe={setEditingRecipe} onClose={() => setEditingRecipe(null)} onUpdate={handleUpdate} isUpdating={isUpdating} />
+      )}
+      {deletedPlan && (
+        <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 z-50">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 text-sm">
+            <span className="text-gray-600">Removed {deletedPlan.recipe?.name} from {deletedPlan.date}</span>
+            <button
+              onClick={handleUndoDelete}
+              className="font-medium text-deep-blue hover:underline"
+            >
+              undo
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
