@@ -1,17 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-
-export type Recipe = {
-    id: string;
-    name: string;
-    ingredients: string[];
-    instructions: string;
-    prep_time: number | null;
-    cook_time: number | null;
-    season: string[];
-    image_url?: string | null;
-    tags: string[];
-};
+import type { Recipe } from "@/src/lib/airtable";
 
 const seasonEmojis: Record<string, string> = {
     spring: '🌸',
@@ -29,7 +18,7 @@ type Props = {
     layout?: 'preview' | 'full',
 }
 
-export const Recipe = ({ recipe, className, setEditingRecipe, fetchRecipes, layout }: Props) => {
+export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, layout }: Props) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const handleEdit = (recipe: Recipe) => {
@@ -49,8 +38,8 @@ export const Recipe = ({ recipe, className, setEditingRecipe, fetchRecipes, layo
     };
 
     const layoutClass = layout === 'preview' ? 'flex flex-col sm:flex-row' : '';
-    const imgContainerClass = layout === 'preview' ? 'sm:w-48 flex-shrink-0' : '';
-    const imgClass = layout === 'preview' ? 'w-full h-24 sm:h-full sm:min-h-full sm:w-auto sm:min-w-full sm:rounded-l-lg sm:rounded-t-none rounded-t-lg' : 'h-full rounded-lg';
+    const imgContainerClass = layout === 'preview' ? 'w-full sm:w-48 h-38 flex-shrink-0 overflow-hidden' : '';
+    const imgClass = layout === 'preview' ? 'w-full h-full object-cover rounded-t-lg sm:rounded-l-lg sm:rounded-t-none' : 'h-full rounded-lg';
 
     return <div key={recipe.id} className={`${className} ${layoutClass} bg-white`}>
         {recipe.image_url && (

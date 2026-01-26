@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Loader from '../components/Loader';
 import { getCurrentSeason } from '../utils/utils';
-import { Recipe } from './Recipe';
+import { RecipeCard } from './Recipe';
+import type { Recipe } from '@/src/lib/airtable';
 import { RecipeEditModal } from './RecipeEditModal';
 import { Search } from 'lucide-react';
 
@@ -184,7 +185,7 @@ export default function HomePage() {
             <h3 className="text-2xl font-bold text-center text-deep-blue mb-2">
               🎉 tonight's dinner 🎉
             </h3>
-            <Recipe recipe={selectedRecipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} />
+            <RecipeCard recipe={selectedRecipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} />
           </div>
         )}
       </div>
@@ -214,7 +215,7 @@ export default function HomePage() {
         ) : (
           <div className="grid gap-4">
             {filteredRecipes.map((recipe) => (
-              <Recipe key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
+              <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
             ))}
             <div className="text-center my-8">
               <Link href="/add" className="hover:underline">add a recipe</Link>
