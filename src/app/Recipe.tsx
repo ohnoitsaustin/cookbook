@@ -48,9 +48,9 @@ export const Recipe = ({ recipe, className, setEditingRecipe, fetchRecipes, layo
         }
     };
 
-    const layoutClass = layout === 'preview' ? 'flex flex-row' : '';
-    const imgContainerClass = layout === 'preview' ? 'w-48 flex-shrink-0' : '';
-    const imgClass = layout === 'preview' ? 'h-full min-h-full rounded-l-lg' : 'h-full rounded-lg ';
+    const layoutClass = layout === 'preview' ? 'flex flex-col sm:flex-row' : '';
+    const imgContainerClass = layout === 'preview' ? 'sm:w-48 flex-shrink-0' : '';
+    const imgClass = layout === 'preview' ? 'w-full h-24 sm:h-full sm:min-h-full sm:w-auto sm:min-w-full sm:rounded-l-lg sm:rounded-t-none rounded-t-lg' : 'h-full rounded-lg';
 
     return <div key={recipe.id} className={`${className} ${layoutClass} bg-white`}>
         {recipe.image_url && (
