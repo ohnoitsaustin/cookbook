@@ -122,7 +122,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
             <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Previous week">
                 <ChevronLeft size={24} />
             </button>
-            <h2 className="text-5xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
+            <h2 className="text-4xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
             <button onClick={() => setWeekOffset(prev => prev + 1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Next week">
                 <ChevronRight size={24} />
             </button>

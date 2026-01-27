@@ -16,6 +16,7 @@ export default function HomePage() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [seasonFilter, setSeasonFilter] = useState(getCurrentSeason());
   const [isLoadingRecipes, setIsLoadingRecipes] = useState<boolean>(true);
+  const [isLoadingPlans, setIsLoadingPlans] = useState<boolean>(true);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [spinningRecipeName, setSpinningRecipeName] = useState<string>('');
@@ -66,6 +67,8 @@ export default function HomePage() {
     } catch (error) {
       console.error('Failed to fetch plans:', error);
       setPlans([]);
+    } finally {
+      setIsLoadingPlans(false);
     }
   };
 
@@ -214,14 +217,16 @@ export default function HomePage() {
 
       {/* Wheel Spinner Section */}
       <div className="bg-gray-50 py-8 md:px-8 rounded-lg">
-        {
-          recipes.length > 0 &&
-          <>
-            <div className="text-center">
-              <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} />
-            </div>
-          </>
-        }
+        {(isLoadingRecipes || isLoadingPlans) && (
+          <div className="mt-8">
+            <Loader />
+          </div>
+        )}
+        {!isLoadingPlans && recipes.length > 0 && (
+          <div className="text-center">
+            <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} />
+          </div>
+        )}
         {isSpinning && spinningRecipeName && (
           <div className="mt-6 p-6 bg-white rounded-lg shadow-md min-h-[80px] flex items-center justify-center">
             <p className="text-3xl font-bold text-deep-blue">
@@ -275,11 +280,6 @@ export default function HomePage() {
 
       {/* Recipe List */}
       <div>
-        {isLoadingRecipes && (
-          <div className="mt-8">
-            <Loader />
-          </div>
-        )}
         {recipes.length === 0 && !isLoadingRecipes ? (
           <div className="text-center">
             <div className="my-4 text-4xl">🍽</div>
@@ -298,14 +298,14 @@ export default function HomePage() {
         ) : (
           <div className="grid gap-4" onDragStart={() => setIsDraggingRecipe(true)} onDragEnd={() => setIsDraggingRecipe(false)}>
             {filteredRecipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" />
+              <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" plans={plans} onSchedule={handleDropRecipe} />
             ))}
             {filteredRecipes.length != recipes.length &&
               <hr className="my-4 border-gray-300" />
             }
             {
               recipes.filter(r => !filteredRecipes.map(r => r.id).includes(r.id)).map(recipe =>
-                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" />
+                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" plans={plans} onSchedule={handleDropRecipe} />
               )
             }
             <div className="text-center my-8">

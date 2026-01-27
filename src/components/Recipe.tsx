@@ -1,6 +1,6 @@
-import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
-import type { Recipe } from "@/src/lib/supabase";
+import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { Plan, Recipe } from "@/src/lib/supabase";
 
 let dragIconEl: HTMLImageElement | null = null;
 function getDragIcon(): HTMLImageElement {
@@ -29,11 +29,48 @@ type Props = {
     setEditingRecipe: (recipe: Recipe) => void,
     fetchRecipes: () => void,
     layout?: 'preview' | 'full',
+    plans?: Plan[],
+    onSchedule?: (date: string, recipeId: string) => void,
 }
 
-export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, layout }: Props) => {
+function getCurrentWeekDays() {
+    const now = new Date();
+    const sunday = new Date(now);
+    const dayOfWeek = sunday.getDay();
+    const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
+    sunday.setDate(sunday.getDate() - daysToSunday);
+    sunday.setHours(0, 0, 0, 0);
+
+    return Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(sunday);
+        date.setDate(sunday.getDate() + i);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return {
+            dateKey: `${y}-${m}-${d}`,
+            label: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i],
+            shortDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        };
+    });
+}
+
+export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, layout, plans, onSchedule }: Props) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showSchedule, setShowSchedule] = useState(false);
+    const scheduleRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!showSchedule) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (scheduleRef.current && !scheduleRef.current.contains(e.target as Node)) {
+                setShowSchedule(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showSchedule]);
 
     const handleEdit = (recipe: Recipe) => {
         setEditingRecipe(recipe);
@@ -80,6 +117,37 @@ export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, 
             <div className="flex justify-between items-start mb-2">
                 <h3 className="text-5xl font-bonheur-royale">{recipe.name}</h3>
                 <div className="flex gap-2">
+                    {onSchedule && (
+                        <div className="relative" ref={scheduleRef}>
+                            <button
+                                onClick={() => setShowSchedule(!showSchedule)}
+                                className="text-gray-600 hover:text-gray-400 p-1"
+                                aria-label="Schedule recipe"
+                            >
+                                <CalendarPlus size={18} />
+                            </button>
+                            {showSchedule && (
+                                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 w-36">
+                                    {getCurrentWeekDays().map((day) => {
+                                        const hasPlan = plans?.some(p => p.date === day.dateKey && p.recipe);
+                                        return (
+                                            <button
+                                                key={day.dateKey}
+                                                onClick={() => {
+                                                    onSchedule(day.dateKey, recipe.id);
+                                                    setShowSchedule(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-100 flex justify-between items-center ${!hasPlan ? 'font-semibold text-deep-blue' : 'text-gray-400'}`}
+                                            >
+                                                <span>{day.label}</span>
+                                                <span className="text-xs">{day.shortDate}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <button
                         onClick={() => handleEdit(recipe)}
                         disabled={isDeleting}
