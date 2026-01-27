@@ -17,6 +17,17 @@ type Props = {
     isDragging: boolean;
 }
 
+const emptyPlanMsgs = [
+    "our feelings",
+    "our words",
+    "braaaains",
+    "scrounging",
+    "scavenging",
+    "who knows",
+    "something",
+    "food",
+]
+
 export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragging }: Props): React.ReactElement {
     const [dragOverDate, setDragOverDate] = useState<string | null>(null);
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
@@ -107,7 +118,6 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                 const plan = plansByDate[day.dateKey];
                 const isDragOver = dragOverDate === day.dateKey;
                 const isSpinning = day.dateKey in spinningDates;
-                const className = ['sun', 'sat'].includes(day.label) ? '' : '';
 
                 return (
                     <div
@@ -168,7 +178,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 {spinningDates[day.dateKey]}
                             </p>
                         )}
-                        {isDragging && (
+                        {plan?.recipe == null && isDragging && (
                             <div className="w-10 h-10 rounded-full border-2 border-dashed border-gray-300 mx-auto my-auto flex items-center justify-center text-gray-300">
                                 <Plus size={20} />
                             </div>
