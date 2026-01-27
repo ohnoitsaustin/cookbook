@@ -207,7 +207,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 />
                             )}
                             {plan?.recipe?.image_url == null && (
-                                <div className="text-4xl my-1">🍽</div>
+                                <div className="text-4xl my-1 leading-18">🍽</div>
                             )}
                         </div>
                         <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
@@ -216,7 +216,9 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                             {day.isToday && <p className="text-xs block sm:hidden">Today</p>}
                             {weather[day.dateKey] && (
                                 <p className={`text-xs whitespace-nowrap ${day.isToday ? 'text-deep-blue' : 'text-gray-500'}`}>
-                                    {weather[day.dateKey].emoji} {weather[day.dateKey].high}°/{weather[day.dateKey].low}°
+                                    <span className="text-xl block sm:inline sm:text-xs">{weather[day.dateKey].emoji}{' '}</span>
+
+                                    <span>{weather[day.dateKey].high}°/{weather[day.dateKey].low}°</span>
                                 </p>
                             )}
                         </div>

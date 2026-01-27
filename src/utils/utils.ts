@@ -1,7 +1,7 @@
 export function weatherCodeToEmoji(code: number): string {
     if (code === 0) return '☀️';
     if (code <= 3) return '⛅';
-    if (code <= 48) return '🌫️';
+    if (code <= 48) return '☁️';
     if (code <= 57) return '🌦️';
     if (code <= 67) return '🌧️';
     if (code <= 77) return '🌨️';
