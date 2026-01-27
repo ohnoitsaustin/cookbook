@@ -24,6 +24,7 @@ export default function HomePage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isDraggingRecipe, setIsDraggingRecipe] = useState(false);
   const [deletedPlan, setDeletedPlan] = useState<Plan | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleUpdate = async (updatedRecipe: Recipe) => {
@@ -224,7 +225,7 @@ export default function HomePage() {
         )}
         {!isLoadingPlans && recipes.length > 0 && (
           <div className="text-center">
-            <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} />
+            <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} onWeekOffsetChange={setWeekOffset} />
           </div>
         )}
         {isSpinning && spinningRecipeName && (
@@ -298,14 +299,14 @@ export default function HomePage() {
         ) : (
           <div className="grid gap-4" onDragStart={() => setIsDraggingRecipe(true)} onDragEnd={() => setIsDraggingRecipe(false)}>
             {filteredRecipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" plans={plans} onSchedule={handleDropRecipe} />
+              <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" plans={plans} onSchedule={handleDropRecipe} weekOffset={weekOffset} />
             ))}
             {filteredRecipes.length != recipes.length &&
               <hr className="my-4 border-gray-300" />
             }
             {
               recipes.filter(r => !filteredRecipes.map(r => r.id).includes(r.id)).map(recipe =>
-                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" plans={plans} onSchedule={handleDropRecipe} />
+                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" plans={plans} onSchedule={handleDropRecipe} weekOffset={weekOffset} />
               )
             }
             <div className="text-center my-8">

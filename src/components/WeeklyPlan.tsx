@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { Plan, Recipe } from '@/src/lib/supabase';
 import { weatherCodeToEmoji } from '@/src/utils/utils';
@@ -22,6 +22,7 @@ type Props = {
     onDropRecipe: (date: string, recipeId: string) => void;
     onRemovePlan: (plan: Plan) => void;
     isDragging: boolean;
+    onWeekOffsetChange?: (offset: number) => void;
 }
 
 const emptyPlanMsgs = [
@@ -35,7 +36,7 @@ const emptyPlanMsgs = [
     "food",
 ]
 
-export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragging }: Props): React.ReactElement {
+export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragging, onWeekOffsetChange }: Props): React.ReactElement {
     const [dragOverDate, setDragOverDate] = useState<string | null>(null);
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
     const [weekOffset, setWeekOffset] = useState(0);
@@ -161,19 +162,35 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
         [weekOffset]
     );
 
+    const handleUseLastWeek = useCallback((dateKey: string) => {
+        if (plansByDate[dateKey]) return;
+        const planDate = new Date(dateKey);
+        planDate.setDate(planDate.getDate() - 7);
+        const lastWeek = planDate.toISOString().split('T')[0];
+        const planFromLastWeek = plansByDate[lastWeek];
+
+        if (planFromLastWeek?.recipe) {
+            onDropRecipe(dateKey, planFromLastWeek.recipe.id);
+        }
+    }, [plansByDate, onDropRecipe]);
+
     return <div className="mb-8">
         <div className="flex items-center justify-center gap-2 mb-2">
-            <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Previous week">
+            <button onClick={() => { const next = weekOffset - 1; setWeekOffset(next); onWeekOffsetChange?.(next); }} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Previous week">
                 <ChevronLeft size={24} />
             </button>
-            <h2 className="text-4xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
-            <button onClick={() => setWeekOffset(prev => prev + 1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Next week">
+            <h2 className="text-4xl font-bonheur-royale">dinner{'\u00A0'}for{'\u00A0'}the{'\u00A0'}week{'\u00A0'}of {daysOfTheWeek[0].longDisplay.replaceAll(' ', '\u00A0')}</h2>
+            <button onClick={() => { const next = weekOffset + 1; setWeekOffset(next); onWeekOffsetChange?.(next); }} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Next week">
                 <ChevronRight size={24} />
             </button>
         </div>
         <div className="flex flex-col sm:grid sm:grid-cols-7 gap-1">
             {daysOfTheWeek.map((day, i) => {
                 const plan = plansByDate[day.dateKey];
+                const planDate = new Date(day.dateKey);
+                planDate.setDate(planDate.getDate() - 7);
+                const lastWeek = planDate.toISOString().split('T')[0];
+                const planFromLastWeek = plansByDate[lastWeek];
                 const isDragOver = dragOverDate === day.dateKey;
                 const isSpinning = day.dateKey in spinningDates;
                 const emptyPlanMsg = emptyPlanMsgsThisWeek[i];
@@ -181,7 +198,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                 return (
                     <div
                         key={day.dateKey}
-                        className={`group relative text-center p-none sm:p-2 border rounded-lg transition-colors grid grid-flow-col auto-rows-auto sm:flex sm:flex-col justify-start
+                        className={`group relative text-center p-none sm:p-2 border rounded-lg bg-white transition-colors grid grid-flow-col auto-rows-auto sm:flex sm:flex-col justify-start
                             ${day.isToday ? 'border-deep-blue border-2 shadow-lg' : 'border-gray-300'}
                             ${isDragOver ? 'border-deep-blue bg-light-blue/20 border-2' : ''}
                         `}
@@ -252,20 +269,32 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
 
                         {plan?.recipe == null && !isSpinning && !isDragging &&
                             (
-                                <>
-
-                                    <div className="text-xs text-gray-400 hidden sm:block group-hover:hidden mt-2">
+                                <div className="flex flex-col justify-end text-left">
+                                    <div className="text-xs text-gray-400 hidden sm:block  mt-2 text-center ">
                                         <div className="text-4xl my-1">🍽</div>
                                         <p>{emptyPlanMsg}</p>
                                     </div>
+                                    <hr className="border-gray-200 my-2 hidden sm:block" />
+
                                     <button
                                         onClick={() => handleSpin(day.dateKey)}
-                                        className="ml-6 sm:ml-0 w-full h-full text-lg opacity:100 sm:opacity-0 group-hover:opacity-100 hover:scale-150"
+                                        className="mb-2 ml-6 sm:ml-0 text-left text-xs hover:underline cursor-pointer"
                                         aria-label="Random recipe"
                                     >
-                                        🎲
+                                        random
                                     </button>
-                                </>
+                                    {planFromLastWeek?.recipe != null &&
+                                        <button
+                                            onClick={() => handleUseLastWeek(day.dateKey)}
+                                            className="mb-2 ml-6 sm:ml-0 text-xs text-left hover:underline cursor-pointer"
+                                            aria-label="Use last week's plan"
+                                        >
+                                            repeat<br />
+                                            <span className="text-8">({planFromLastWeek.recipe.name})</span>
+                                        </button>
+                                    }
+
+                                </div>
                             )
                         }
                     </div>

@@ -31,14 +31,15 @@ type Props = {
     layout?: 'preview' | 'full',
     plans?: Plan[],
     onSchedule?: (date: string, recipeId: string) => void,
+    weekOffset?: number,
 }
 
-function getCurrentWeekDays() {
+function getWeekDays(weekOffset = 0) {
     const now = new Date();
     const sunday = new Date(now);
     const dayOfWeek = sunday.getDay();
     const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
-    sunday.setDate(sunday.getDate() - daysToSunday);
+    sunday.setDate(sunday.getDate() - daysToSunday + weekOffset * 7);
     sunday.setHours(0, 0, 0, 0);
 
     return Array.from({ length: 7 }, (_, i) => {
@@ -55,7 +56,7 @@ function getCurrentWeekDays() {
     });
 }
 
-export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, layout, plans, onSchedule }: Props) => {
+export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, layout, plans, onSchedule, weekOffset }: Props) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showSchedule, setShowSchedule] = useState(false);
@@ -128,7 +129,7 @@ export const RecipeCard = ({ recipe, className, setEditingRecipe, fetchRecipes, 
                             </button>
                             {showSchedule && (
                                 <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 w-36">
-                                    {getCurrentWeekDays().map((day) => {
+                                    {getWeekDays(weekOffset).map((day) => {
                                         const hasPlan = plans?.some(p => p.date === day.dateKey && p.recipe);
                                         return (
                                             <button
