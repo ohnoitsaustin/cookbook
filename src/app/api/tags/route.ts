@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTags } from '@/src/lib/airtable';
+import { getTags } from '@/src/lib/supabase';
 
 export async function GET() {
   try {

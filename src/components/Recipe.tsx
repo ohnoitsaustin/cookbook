@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import type { Recipe } from "@/src/lib/airtable";
+import type { Recipe } from "@/src/lib/supabase";
 
 let dragIconEl: HTMLImageElement | null = null;
 function getDragIcon(): HTMLImageElement {

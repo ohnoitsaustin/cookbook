@@ -4,7 +4,7 @@ import {
     deletePlan,
     getPlans,
     updatePlan,
-} from '@/src/lib/airtable';
+} from '@/src/lib/supabase';
 
 export async function POST(request: Request) {
     try {

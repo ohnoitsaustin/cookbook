@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Loader from '../components/Loader';
 import { getCurrentSeason } from '../utils/utils';
 import { RecipeCard } from '../components/Recipe';
-import type { Recipe, Plan } from '@/src/lib/airtable';
+import type { Recipe, Plan } from '@/src/lib/supabase';
 import { RecipeEditModal } from '../components/RecipeEditModal';
 import { Search } from 'lucide-react';
 import { WeeklyPlan } from '../components/WeeklyPlan';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import type { Plan, Recipe } from '@/src/lib/airtable';
+import type { Plan, Recipe } from '@/src/lib/supabase';
 
 function formatDateKey(date: Date): string {
     const y = date.getFullYear();

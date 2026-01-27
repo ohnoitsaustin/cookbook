@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Recipe } from "@/src/lib/airtable";
+import type { Recipe } from "@/src/lib/supabase";
 import { TagInput } from "@/src/components/TagInput";
 
 export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe, isUpdating }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void, isUpdating: boolean }) => {
