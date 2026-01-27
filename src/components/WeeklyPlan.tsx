@@ -163,7 +163,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 />
                             )}
                             {plan?.recipe?.image_url == null && (
-                                <div className="bg-gray-300 w-full h-full" />
+                                <div className="text-4xl my-1">🍽</div>
                             )}
                         </div>
                         <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
@@ -189,7 +189,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                             </div>
                         )}
                         {isSpinning && (
-                            <p className="text-xs font-medium text-deep-blue truncate w-full h-full leading-24">
+                            <p className="text-xs font-medium text-deep-blue truncate h-full leading-12">
                                 {spinningDates[day.dateKey]}
                             </p>
                         )}
@@ -202,12 +202,14 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                         {plan?.recipe == null && !isSpinning && !isDragging &&
                             (
                                 <>
-                                    <p className="text-xs text-gray-400 opacity-100 group-hover:opacity-0 mt-2">
-                                        {emptyPlanMsg}
-                                    </p>
+
+                                    <div className="text-xs text-gray-400 hidden sm:block group-hover:hidden mt-2">
+                                        <div className="text-4xl my-1">🍽</div>
+                                        <p>{emptyPlanMsg}</p>
+                                    </div>
                                     <button
                                         onClick={() => handleSpin(day.dateKey)}
-                                        className="ml-6 sm:ml-0 w-full h-full text-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-150"
+                                        className="ml-6 sm:ml-0 w-full h-full text-lg opacity:100 sm:opacity-0 group-hover:opacity-100 hover:scale-150"
                                         aria-label="Random recipe"
                                     >
                                         🎲
