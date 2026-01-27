@@ -72,17 +72,26 @@ export default function HomePage() {
   const handleDropRecipe = async (date: string, recipeId: string) => {
     // Optimistic update
     const recipe = recipes.find(r => r.id === recipeId) || null;
-    setPlans(prev => [...prev.filter(p => p.date !== date), { id: 'temp', date, recipe, notes: '' }]);
+    const existingPlan = plans.find(p => p.date === date);
+    setPlans(prev => [...prev.filter(p => p.date !== date), { id: existingPlan?.id || 'temp', date, recipe, notes: existingPlan?.notes || '' }]);
 
     try {
-      await fetch('/api/plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, recipeId, notes: '' }),
-      });
+      if (existingPlan) {
+        await fetch('/api/plans', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: existingPlan.id, date, recipeId, notes: existingPlan.notes }),
+        });
+      } else {
+        await fetch('/api/plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date, recipeId, notes: '' }),
+        });
+      }
       fetchPlans();
     } catch (error) {
-      console.error('Failed to create plan:', error);
+      console.error('Failed to save plan:', error);
       fetchPlans();
     }
   };

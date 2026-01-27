@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { Plan, Recipe } from '@/src/lib/supabase';
 
 function formatDateKey(date: Date): string {
@@ -31,17 +31,18 @@ const emptyPlanMsgs = [
 export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragging }: Props): React.ReactElement {
     const [dragOverDate, setDragOverDate] = useState<string | null>(null);
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
+    const [weekOffset, setWeekOffset] = useState(0);
 
     const now = new Date();
-    const monday = new Date(now);
-    const dayOfWeek = monday.getDay();
+    const sunday = new Date(now);
+    const dayOfWeek = sunday.getDay();
     const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
-    monday.setDate(monday.getDate() - daysToSunday);
-    monday.setHours(0, 0, 0, 0);
+    sunday.setDate(sunday.getDate() - daysToSunday + weekOffset * 7);
+    sunday.setHours(0, 0, 0, 0);
 
     const daysOfTheWeek = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
+        const date = new Date(sunday);
+        date.setDate(sunday.getDate() + i);
         const dateKey = formatDateKey(date);
         return {
             dateKey,
@@ -111,13 +112,27 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
         spin();
     };
 
+    const emptyPlanMsgsThisWeek = useMemo(
+        () => Array.from({ length: 7 }, () => emptyPlanMsgs[Math.floor(Math.random() * emptyPlanMsgs.length)]),
+        [weekOffset]
+    );
+
     return <div className="mb-8">
-        <h2 className="mb-2 text-5xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
+        <div className="flex items-center justify-center gap-2 mb-2">
+            <button onClick={() => setWeekOffset(prev => prev - 1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Previous week">
+                <ChevronLeft size={24} />
+            </button>
+            <h2 className="text-5xl font-bonheur-royale">dinner for the week of {daysOfTheWeek[0].longDisplay}</h2>
+            <button onClick={() => setWeekOffset(prev => prev + 1)} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Next week">
+                <ChevronRight size={24} />
+            </button>
+        </div>
         <div className="flex flex-col sm:grid sm:grid-cols-7 gap-1">
-            {daysOfTheWeek.map((day) => {
+            {daysOfTheWeek.map((day, i) => {
                 const plan = plansByDate[day.dateKey];
                 const isDragOver = dragOverDate === day.dateKey;
                 const isSpinning = day.dateKey in spinningDates;
+                const emptyPlanMsg = emptyPlanMsgsThisWeek[i];
 
                 return (
                     <div
@@ -186,15 +201,18 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
 
                         {plan?.recipe == null && !isSpinning && !isDragging &&
                             (
-
-                                <button
-                                    onClick={() => handleSpin(day.dateKey)}
-                                    className="ml-6 sm:ml-0 w-full h-full text-lg opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
-                                    aria-label="Random recipe"
-                                >
-                                    🎲
-                                </button>
-
+                                <>
+                                    <p className="text-xs text-gray-400 opacity-100 group-hover:opacity-0 mt-2">
+                                        {emptyPlanMsg}
+                                    </p>
+                                    <button
+                                        onClick={() => handleSpin(day.dateKey)}
+                                        className="ml-6 sm:ml-0 w-full h-full text-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-150"
+                                        aria-label="Random recipe"
+                                    >
+                                        🎲
+                                    </button>
+                                </>
                             )
                         }
                     </div>

@@ -19,6 +19,7 @@ export default function RecipesPage() {
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -135,6 +136,29 @@ export default function RecipesPage() {
     }
   };
 
+  const handleGenerateImage = async () => {
+    if (!formData.name.trim()) return;
+    setGenerating(true);
+    try {
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.name }),
+      });
+      const data = await response.json();
+      if (data.url) {
+        setFormData(prev => ({ ...prev, image_url: data.url }));
+      } else {
+        alert(data.error || 'Image generation failed');
+      }
+    } catch (error) {
+      console.error('Generate failed:', error);
+      alert('Image generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-8">
       <Link className="hover:underline" href="/">Home</Link>
@@ -201,14 +225,25 @@ export default function RecipesPage() {
               </button>
             </div>
           )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            disabled={uploading}
-            className="w-full p-2 border rounded"
-          />
+          <div className="flex gap-2 items-center">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploading || generating}
+              className="flex-1 p-2 border rounded"
+            />
+            <button
+              type="button"
+              onClick={handleGenerateImage}
+              disabled={generating || uploading || !formData.name.trim()}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:bg-gray-400 whitespace-nowrap"
+            >
+              {generating ? 'Generating...' : 'Generate with AI'}
+            </button>
+          </div>
           {uploading && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
+          {generating && <p className="text-sm text-gray-600 mt-1">Generating image from recipe name...</p>}
         </div>
 
         <div>

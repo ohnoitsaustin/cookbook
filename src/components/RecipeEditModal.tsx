@@ -4,6 +4,7 @@ import { TagInput } from "@/src/components/TagInput";
 
 export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe, isUpdating }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void, isUpdating: boolean }) => {
     const [uploading, setUploading] = useState(false);
+    const [generating, setGenerating] = useState(false);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -27,6 +28,29 @@ export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRe
             console.error('Upload failed:', error);
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleGenerateImage = async () => {
+        if (!editingRecipe.name.trim()) return;
+        setGenerating(true);
+        try {
+            const response = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: editingRecipe.name }),
+            });
+            const data = await response.json();
+            if (data.url) {
+                setEditingRecipe({ ...editingRecipe, image_url: data.url } as Recipe);
+            } else {
+                alert(data.error || 'Image generation failed');
+            }
+        } catch (error) {
+            console.error('Generate failed:', error);
+            alert('Image generation failed');
+        } finally {
+            setGenerating(false);
         }
     };
 
@@ -75,14 +99,25 @@ export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRe
                                 </button>
                             </div>
                         )}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            disabled={uploading}
-                            className="w-full p-2 border rounded"
-                        />
+                        <div className="flex gap-2 items-center">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                disabled={uploading || generating}
+                                className="flex-1 p-2 border rounded"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleGenerateImage}
+                                disabled={generating || uploading || !editingRecipe.name.trim()}
+                                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:bg-gray-400 whitespace-nowrap"
+                            >
+                                {generating ? 'Generating...' : 'Generate with AI'}
+                            </button>
+                        </div>
                         {uploading && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
+                        {generating && <p className="text-sm text-gray-600 mt-1">Generating image from recipe name...</p>}
                     </div>
                     <div>
                         <label className="block mb-2 font-medium">ingredients (one per line)</label>
