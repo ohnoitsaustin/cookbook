@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { Plan, Recipe } from '@/src/lib/supabase';
+import { weatherCodeToEmoji } from '@/src/utils/utils';
+
+type WeatherDay = {
+    high: number;
+    low: number;
+    emoji: string;
+};
 
 function formatDateKey(date: Date): string {
     const y = date.getFullYear();
@@ -32,6 +39,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const [dragOverDate, setDragOverDate] = useState<string | null>(null);
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
     const [weekOffset, setWeekOffset] = useState(0);
+    const [weather, setWeather] = useState<Record<string, WeatherDay>>({});
 
     const now = new Date();
     const sunday = new Date(now);
@@ -39,6 +47,42 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
     sunday.setDate(sunday.getDate() - daysToSunday + weekOffset * 7);
     sunday.setHours(0, 0, 0, 0);
+
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
+    const startDate = formatDateKey(sunday);
+    const endDate = formatDateKey(saturday);
+
+    useEffect(() => {
+        const fetchWeather = async (lat: number, lng: number) => {
+            try {
+                const res = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&start_date=${startDate}&end_date=${endDate}`
+                );
+                const data = await res.json();
+                const days: Record<string, WeatherDay> = {};
+                data.daily?.time?.forEach((date: string, i: number) => {
+                    days[date] = {
+                        high: Math.round(data.daily.temperature_2m_max[i]),
+                        low: Math.round(data.daily.temperature_2m_min[i]),
+                        emoji: weatherCodeToEmoji(data.daily.weather_code[i]),
+                    };
+                });
+                setWeather(days);
+            } catch {
+                // silently fail — weather is non-critical
+            }
+        };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+                () => fetchWeather(39.1653, -86.5264), // fallback: Bloomington, IN
+            );
+        } else {
+            fetchWeather(39.1653, -86.5264);
+        }
+    }, [startDate, endDate]);
 
     const daysOfTheWeek = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(sunday);
@@ -167,9 +211,14 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                             )}
                         </div>
                         <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
-                            <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-400'}`}>{day.label}</h3>
-                            <p className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-400'}`}>{day.shortDisplay}</p>
+                            <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-500'}`}>{day.label}</h3>
+                            <p className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-500'}`}>{day.shortDisplay}</p>
                             {day.isToday && <p className="text-xs block sm:hidden">Today</p>}
+                            {weather[day.dateKey] && (
+                                <p className={`text-xs whitespace-nowrap ${day.isToday ? 'text-deep-blue' : 'text-gray-500'}`}>
+                                    {weather[day.dateKey].emoji} {weather[day.dateKey].high}°/{weather[day.dateKey].low}°
+                                </p>
+                            )}
                         </div>
 
                         {plan && plan.recipe && (
