@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { Plan, Recipe } from '@/src/lib/supabase';
 import { weatherCodeToEmoji } from '@/src/utils/utils';
@@ -41,7 +41,6 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
     const [weekOffset, setWeekOffset] = useState(0);
     const [weather, setWeather] = useState<Record<string, WeatherDay>>({});
-    const locationFetched = useRef(false);
 
     const location = { lat: 39.1653, lng: -86.5264 }; // Bloomington, IN
 
@@ -57,24 +56,23 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const startDate = formatDateKey(sunday);
     const endDate = formatDateKey(saturday);
 
-    // Fetch weather when location is available or dates change
+    // Fetch weather (with DB caching) when dates change
     useEffect(() => {
-        if (!location) return;
-
         const fetchWeather = async () => {
             try {
                 const res = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lng}&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&start_date=${startDate}&end_date=${endDate}`
+                    `/api/weather?startDate=${startDate}&endDate=${endDate}&lat=${location.lat}&lng=${location.lng}`
                 );
                 const data = await res.json();
                 const days: Record<string, WeatherDay> = {};
-                data.daily?.time?.forEach((date: string, i: number) => {
+                for (const [date, entry] of Object.entries(data)) {
+                    const w = entry as { high: number; low: number; weather_code: number };
                     days[date] = {
-                        high: Math.round(data.daily.temperature_2m_max[i]),
-                        low: Math.round(data.daily.temperature_2m_min[i]),
-                        emoji: weatherCodeToEmoji(data.daily.weather_code[i]),
+                        high: w.high,
+                        low: w.low,
+                        emoji: weatherCodeToEmoji(w.weather_code),
                     };
-                });
+                }
                 setWeather(days);
             } catch {
                 // silently fail — weather is non-critical
@@ -82,7 +80,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
         };
 
         fetchWeather();
-    }, [location, startDate, endDate]);
+    }, [startDate, endDate]);
 
     const daysOfTheWeek = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(sunday);

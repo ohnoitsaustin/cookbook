@@ -331,3 +331,36 @@ async function linkTags(recipeId: string, names: string[]) {
   const { error } = await supabase.from('recipe_tags').insert(rows);
   if (error) throw error;
 }
+
+// --- Weather Cache ---
+
+export type WeatherCacheEntry = {
+  date: string;
+  high: number;
+  low: number;
+  weather_code: number;
+  updated_at: string;
+};
+
+export async function getWeatherCache(dates: string[]): Promise<WeatherCacheEntry[]> {
+  const { data, error } = await supabase
+    .from('weather_cache')
+    .select('*')
+    .in('date', dates);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function upsertWeatherCache(entries: Omit<WeatherCacheEntry, 'updated_at'>[]): Promise<void> {
+  const rows = entries.map(e => ({
+    ...e,
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase
+    .from('weather_cache')
+    .upsert(rows, { onConflict: 'date' });
+
+  if (error) throw error;
+}
