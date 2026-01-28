@@ -125,10 +125,21 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const handleSpin = (dateKey: string) => {
         if (recipes.length === 0 || spinningDates[dateKey]) return;
 
+        // Get recipe IDs already planned for this week
+        const usedRecipeIds = new Set(
+            daysOfTheWeek
+                .map(day => plansByDate[day.dateKey]?.recipe?.id)
+                .filter(Boolean)
+        );
+
+        // Filter out already-used recipes
+        const availableRecipes = recipes.filter(r => !usedRecipeIds.has(r.id));
+        const recipesToPickFrom = availableRecipes.length > 0 ? availableRecipes : recipes;
+
         setSpinningDates(prev => ({ ...prev, [dateKey]: '' }));
 
-        const finalIndex = Math.floor(Math.random() * recipes.length);
-        const finalRecipe = recipes[finalIndex];
+        const finalIndex = Math.floor(Math.random() * recipesToPickFrom.length);
+        const finalRecipe = recipesToPickFrom[finalIndex];
 
         let currentIndex = 0;
         let spinCount = 0;
