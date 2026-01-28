@@ -41,8 +41,9 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
     const [weekOffset, setWeekOffset] = useState(0);
     const [weather, setWeather] = useState<Record<string, WeatherDay>>({});
-    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const locationFetched = useRef(false);
+
+    const location = { lat: 39.1653, lng: -86.5264 }; // Bloomington, IN
 
     const now = new Date();
     const sunday = new Date(now);
@@ -55,23 +56,6 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     saturday.setDate(sunday.getDate() + 6);
     const startDate = formatDateKey(sunday);
     const endDate = formatDateKey(saturday);
-
-    // Fetch geolocation once on mount
-    useEffect(() => {
-        if (locationFetched.current) return;
-        locationFetched.current = true;
-
-        const fallback = { lat: 39.1653, lng: -86.5264 }; // Bloomington, IN
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => setLocation(fallback),
-            );
-        } else {
-            setLocation(fallback);
-        }
-    }, []);
 
     // Fetch weather when location is available or dates change
     useEffect(() => {
