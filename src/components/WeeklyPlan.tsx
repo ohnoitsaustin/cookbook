@@ -223,18 +223,21 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 <Trash2 size={12} />
                             </button>
                         )}
-                        <div className="flex-none w-20 block sm:hidden rounded-l-sm overflow-hidden">
-                            {plan?.recipe?.image_url && (
+                        {plan?.recipe?.image_url && (
+                            <div className="flex-none w-20 block sm:hidden rounded-l-sm overflow-hidden">
                                 <img
                                     src={plan.recipe.image_url}
                                     alt={plan.recipe.name}
                                     className="object-cover h-full rounded-l-sm"
                                 />
-                            )}
-                            {plan?.recipe?.image_url == null && (
-                                <div className="text-4xl my-1 flex items-center justify-center h-full">🍽</div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+                        {plan?.recipe?.image_url == null && (
+                            <div className="flex flex-col justify-center w-20 block sm:hidden">
+                                <div className="text-4xl my-1">🍽</div>
+                                <p className="text-xs text-gray-400 my-2 text-center">{emptyPlanMsg}</p>
+                            </div>
+                        )}
                         <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
                             <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-500'}`}>{day.label}</h3>
                             <p className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-500'}`}>{day.shortDisplay}</p>
@@ -278,7 +281,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                         {plan?.recipe == null && !isSpinning && !isDragging &&
                             (
                                 <div className="flex-grow-1 flex flex-col justify-end sm:justify-start ml-6 sm:ml-0">
-                                    <div className="text-xs text-gray-400 hidden sm:block  mt-2 text-center ">
+                                    <div className="text-xs text-gray-400 hidden sm:block  mt-2 text-center">
                                         <div className="text-4xl my-1">🍽</div>
                                         <p>{emptyPlanMsg}</p>
                                     </div>
