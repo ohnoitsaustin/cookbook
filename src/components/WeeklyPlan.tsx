@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { Plan, Recipe } from '@/src/lib/supabase';
 import { weatherCodeToEmoji } from '@/src/utils/utils';
@@ -41,6 +41,8 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const [spinningDates, setSpinningDates] = useState<Record<string, string>>({});
     const [weekOffset, setWeekOffset] = useState(0);
     const [weather, setWeather] = useState<Record<string, WeatherDay>>({});
+    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const locationFetched = useRef(false);
 
     const now = new Date();
     const sunday = new Date(now);
@@ -54,11 +56,31 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const startDate = formatDateKey(sunday);
     const endDate = formatDateKey(saturday);
 
+    // Fetch geolocation once on mount
     useEffect(() => {
-        const fetchWeather = async (lat: number, lng: number) => {
+        if (locationFetched.current) return;
+        locationFetched.current = true;
+
+        const fallback = { lat: 39.1653, lng: -86.5264 }; // Bloomington, IN
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => setLocation(fallback),
+            );
+        } else {
+            setLocation(fallback);
+        }
+    }, []);
+
+    // Fetch weather when location is available or dates change
+    useEffect(() => {
+        if (!location) return;
+
+        const fetchWeather = async () => {
             try {
                 const res = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&start_date=${startDate}&end_date=${endDate}`
+                    `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lng}&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=fahrenheit&start_date=${startDate}&end_date=${endDate}`
                 );
                 const data = await res.json();
                 const days: Record<string, WeatherDay> = {};
@@ -75,15 +97,8 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
             }
         };
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                () => fetchWeather(39.1653, -86.5264), // fallback: Bloomington, IN
-            );
-        } else {
-            fetchWeather(39.1653, -86.5264);
-        }
-    }, [startDate, endDate]);
+        fetchWeather();
+    }, [location, startDate, endDate]);
 
     const daysOfTheWeek = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(sunday);
