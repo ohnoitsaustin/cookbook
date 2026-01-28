@@ -179,7 +179,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
             <button onClick={() => { const next = weekOffset - 1; setWeekOffset(next); onWeekOffsetChange?.(next); }} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Previous week">
                 <ChevronLeft size={24} />
             </button>
-            <h2 className="text-4xl font-bonheur-royale">dinner{'\u00A0'}for{'\u00A0'}the{'\u00A0'}week{'\u00A0'}of {daysOfTheWeek[0].longDisplay.replaceAll(' ', '\u00A0')}</h2>
+            <h2 className="text-2xl">dinner{'\u00A0'}for{'\u00A0'}the{'\u00A0'}week{'\u00A0'}of {daysOfTheWeek[0].longDisplay.replaceAll(' ', '\u00A0')}</h2>
             <button onClick={() => { const next = weekOffset + 1; setWeekOffset(next); onWeekOffsetChange?.(next); }} className="p-1 text-gray-400 hover:text-gray-700 transition-colors" aria-label="Next week">
                 <ChevronRight size={24} />
             </button>
@@ -198,7 +198,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                 return (
                     <div
                         key={day.dateKey}
-                        className={`group relative text-center p-none sm:p-2 border rounded-lg bg-white transition-colors grid grid-flow-col auto-rows-auto sm:flex sm:flex-col justify-start
+                        className={`group relative text-center p-none sm:p-2 border rounded-lg bg-white transition-colors flex flex-row sm:flex sm:flex-col justify-start content-stretch
                             ${day.isToday ? 'border-deep-blue border-2 shadow-lg' : 'border-gray-300'}
                             ${isDragOver ? 'border-deep-blue bg-light-blue/20 border-2' : ''}
                         `}
@@ -215,16 +215,16 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 <Trash2 size={12} />
                             </button>
                         )}
-                        <div className="h-full w-24 block sm:hidden rounded-l-sm overflow-hidden">
+                        <div className="flex-none w-20 block sm:hidden rounded-l-sm overflow-hidden">
                             {plan?.recipe?.image_url && (
                                 <img
                                     src={plan.recipe.image_url}
                                     alt={plan.recipe.name}
-                                    className="object-fill h-full rounded-l-sm"
+                                    className="object-cover h-full rounded-l-sm"
                                 />
                             )}
                             {plan?.recipe?.image_url == null && (
-                                <div className="text-4xl my-1 leading-18">🍽</div>
+                                <div className="text-4xl my-1 flex items-center justify-center h-full">🍽</div>
                             )}
                         </div>
                         <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
@@ -241,7 +241,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                         </div>
 
                         {plan && plan.recipe && (
-                            <div className="w-full text-left sm:text-center my-2 pr-4 sm:pr-0">
+                            <div className="w-full text-left sm:text-center my-2 pr-4 sm:pr-0 ml-6 sm:ml-0">
                                 {plan.recipe.image_url && (
                                     <img
                                         src={plan.recipe.image_url}
@@ -257,7 +257,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                             </div>
                         )}
                         {isSpinning && (
-                            <p className="text-xs font-medium text-deep-blue truncate h-full leading-12">
+                            <p className="ml-6 sm:ml-0 text-left flex-grow-1 text-lg sm:text-xs font-medium text-deep-blue truncate flex items-center justify-center sm:justify-start">
                                 {spinningDates[day.dateKey]}
                             </p>
                         )}
@@ -269,7 +269,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
 
                         {plan?.recipe == null && !isSpinning && !isDragging &&
                             (
-                                <div className="flex flex-col justify-end text-left">
+                                <div className="flex-grow-1 flex flex-col justify-end sm:justify-start ml-6 sm:ml-0">
                                     <div className="text-xs text-gray-400 hidden sm:block  mt-2 text-center ">
                                         <div className="text-4xl my-1">🍽</div>
                                         <p>{emptyPlanMsg}</p>
@@ -278,7 +278,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
 
                                     <button
                                         onClick={() => handleSpin(day.dateKey)}
-                                        className="mb-2 ml-6 sm:ml-0 text-left text-xs hover:underline cursor-pointer"
+                                        className="my-2 text-xs cursor-pointer bg-deep-blue text-white rounded p-2 text-center w-9/10"
                                         aria-label="Random recipe"
                                     >
                                         random
@@ -286,7 +286,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                     {planFromLastWeek?.recipe != null &&
                                         <button
                                             onClick={() => handleUseLastWeek(day.dateKey)}
-                                            className="mb-2 ml-6 sm:ml-0 text-xs text-left hover:underline cursor-pointer"
+                                            className="mb-2 text-xs cursor-pointer bg-deep-blue text-white rounded p-2 text-center w-9/10"
                                             aria-label="Use last week's plan"
                                         >
                                             repeat<br />

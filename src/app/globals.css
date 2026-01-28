@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+.w-20 {
+  width: calc(var(--spacing) * 20);
+}
+
 :root {
   --background: #fafafa;
   --foreground: #30364F;
@@ -120,6 +124,7 @@ button:hover .wiggle-emoji {
   from {
     transform: translateY(0);
   }
+
   to {
     transform: translateY(-33.333%);
   }
