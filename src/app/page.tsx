@@ -7,7 +7,7 @@ import { getCurrentSeason } from '../utils/utils';
 import { RecipeCard } from '../components/Recipe';
 import type { Recipe, Plan } from '@/src/lib/supabase';
 import { RecipeEditModal } from '../components/RecipeEditModal';
-import { Search } from 'lucide-react';
+import { Search, LogOut } from 'lucide-react';
 import { WeeklyPlan } from '../components/WeeklyPlan';
 
 export default function HomePage() {
@@ -26,6 +26,11 @@ export default function HomePage() {
   const [deletedPlan, setDeletedPlan] = useState<Plan | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSignOut = async () => {
+    await fetch('/api/auth', { method: 'DELETE' });
+    window.location.href = '/login';
+  };
 
   const handleUpdate = async (updatedRecipe: Recipe) => {
     setIsUpdating(true);
@@ -165,172 +170,139 @@ export default function HomePage() {
     return filtered;
   }, [recipes, seasonFilter, searchQuery]);
 
-  const spinWheel = () => {
-    if (filteredRecipes.length === 0) {
-      alert('No recipes match your filters!');
-      return;
-    }
-
-    setIsSpinning(true);
-    setSelectedRecipe(null);
-
-    // Pick the final recipe
-    const finalIndex = Math.floor(Math.random() * filteredRecipes.length);
-    const finalRecipe = filteredRecipes[finalIndex];
-
-    // Animate through recipes
-    let currentIndex = 0;
-    let spinCount = 0;
-    const totalSpins = 20; // Number of times to cycle through recipes
-    const baseDelay = 20; // Starting delay in ms
-
-    const spin = () => {
-      if (spinCount >= totalSpins) {
-        // Stop spinning and show final recipe
-        setSpinningRecipeName('');
-        setSelectedRecipe(finalRecipe);
-        setIsSpinning(false);
-        return;
-      }
-
-      // Show current recipe name
-      setSpinningRecipeName(filteredRecipes[currentIndex].name);
-
-      // Move to next recipe
-      currentIndex = (currentIndex + 1) % filteredRecipes.length;
-      spinCount++;
-
-      // Gradually slow down the spinning
-      const delay = baseDelay + (spinCount / totalSpins) * 200;
-      setTimeout(spin, delay);
-    };
-
-    spin();
-  };
-
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <div className="my-8">
-        <h1 className="font-bonheur-royale text-7xl font-medium text-center">
-          Lord Family Cookbook
-        </h1>
-      </div>
+    <>
+      <div className="max-w-4xl mx-auto p-8">
+        <div className="my-8 relative">
+          <h1 className="font-bonheur-royale text-7xl font-medium text-center">
+            Lord Family Cookbook
+          </h1>
 
-      {/* Wheel Spinner Section */}
-      <div className="bg-gray-50 py-8 md:px-8 rounded-lg">
-        {(isLoadingRecipes || isLoadingPlans) && (
-          <div className="mt-8">
-            <Loader />
-          </div>
-        )}
-        {!isLoadingPlans && recipes.length > 0 && (
-          <div className="text-center">
-            <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} onWeekOffsetChange={setWeekOffset} />
-          </div>
-        )}
-        {isSpinning && spinningRecipeName && (
-          <div className="mt-6 p-6 bg-white rounded-lg shadow-md min-h-[80px] flex items-center justify-center">
-            <p className="text-3xl font-bold text-deep-blue">
-              {spinningRecipeName}
-            </p>
-          </div>
-        )}
-        {selectedRecipe && (
-          <div className="mt-6 bg-white p-6 rounded-lg shadow-lg relative">
-            <button
-              onClick={() => setSelectedRecipe(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10"
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <h3 className="text-2xl font-bold text-center text-deep-blue mb-2">
-              🎉 tonight's dinner 🎉
-            </h3>
-            <RecipeCard recipe={selectedRecipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} />
-          </div>
-        )}
-      </div>
+        </div>
 
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-white" size={20} />
-          <input
-            type="text"
-            placeholder="Search recipes, ingredients, instructions, tags, or seasons..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              ×
-            </button>
+        {/* Wheel Spinner Section */}
+        <div className="bg-gray-50 py-8 md:px-8 rounded-lg">
+          {(isLoadingRecipes || isLoadingPlans) && (
+            <div className="mt-8">
+              <Loader />
+            </div>
+          )}
+          {!isLoadingPlans && recipes.length > 0 && (
+            <div className="text-center">
+              <WeeklyPlan plans={plans} recipes={filteredRecipes} onDropRecipe={handleDropRecipe} onRemovePlan={handleRemovePlan} isDragging={isDraggingRecipe} onWeekOffsetChange={setWeekOffset} />
+            </div>
+          )}
+          {isSpinning && spinningRecipeName && (
+            <div className="mt-6 p-6 bg-white rounded-lg shadow-md min-h-[80px] flex items-center justify-center">
+              <p className="text-3xl font-bold text-deep-blue">
+                {spinningRecipeName}
+              </p>
+            </div>
+          )}
+          {selectedRecipe && (
+            <div className="mt-6 bg-white p-6 rounded-lg shadow-lg relative">
+              <button
+                onClick={() => setSelectedRecipe(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10"
+                aria-label="Close"
+              >
+                ×
+              </button>
+              <h3 className="text-2xl font-bold text-center text-deep-blue mb-2">
+                🎉 tonight's dinner 🎉
+              </h3>
+              <RecipeCard recipe={selectedRecipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} />
+            </div>
           )}
         </div>
-        {searchQuery && (
-          <p className="text-sm text-gray-600 mt-2">
-            Found {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} matching "{searchQuery}"
-          </p>
-        )}
-      </div>
 
-      {/* Recipe List */}
-      <div>
-        {recipes.length === 0 && !isLoadingRecipes ? (
-          <div className="text-center">
-            <div className="my-4 text-4xl">🍽</div>
-            <Link href="/add" className="text-blue-500 hover:underline">add a recipe</Link>
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 bg-white" size={20} />
+            <input
+              type="text"
+              placeholder="Search recipes, ingredients, instructions, tags, or seasons..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            )}
           </div>
-        ) : filteredRecipes.length === 0 && searchQuery ? (
-          <div className="text-center py-8">
-            <p className="text-gray-600 mb-4">No recipes found matching your search.</p>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-blue-600 hover:underline"
-            >
-              Clear search
-            </button>
-          </div>
-        ) : (
-          <div className="grid gap-4" onDragStart={() => setIsDraggingRecipe(true)} onDragEnd={() => setIsDraggingRecipe(false)}>
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" plans={plans} onSchedule={handleDropRecipe} weekOffset={weekOffset} />
-            ))}
-            {filteredRecipes.length != recipes.length &&
-              <hr className="my-4 border-gray-300" />
-            }
-            {
-              recipes.filter(r => !filteredRecipes.map(r => r.id).includes(r.id)).map(recipe =>
-                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" plans={plans} onSchedule={handleDropRecipe} weekOffset={weekOffset} />
-              )
-            }
-            <div className="text-center my-8">
-              <Link href="/add" className="hover:underline">add a recipe</Link>
+          {searchQuery && (
+            <p className="text-sm text-gray-600 mt-2">
+              Found {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} matching "{searchQuery}"
+            </p>
+          )}
+        </div>
+
+        {/* Recipe List */}
+        <div>
+          {recipes.length === 0 && !isLoadingRecipes ? (
+            <div className="text-center">
+              <div className="my-4 text-4xl">🍽</div>
+              <Link href="/add" className="text-blue-500 hover:underline">add a recipe</Link>
+            </div>
+          ) : filteredRecipes.length === 0 && searchQuery ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">No recipes found matching your search.</p>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-blue-600 hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-4" onDragStart={() => setIsDraggingRecipe(true)} onDragEnd={() => setIsDraggingRecipe(false)}>
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow" plans={plans} onSchedule={handleDropRecipe} weekOffset={weekOffset} />
+              ))}
+              {filteredRecipes.length != recipes.length &&
+                <hr className="my-4 border-gray-300" />
+              }
+              {
+                recipes.filter(r => !filteredRecipes.map(r => r.id).includes(r.id)).map(recipe =>
+                  <RecipeCard key={recipe.id} recipe={recipe} setEditingRecipe={setEditingRecipe} fetchRecipes={fetchRecipes} layout="preview" className="border border-gray-200 rounded-lg hover:shadow-lg transition-shadow opacity-50" plans={plans} onSchedule={handleDropRecipe} weekOffset={weekOffset} />
+                )
+              }
+              <div className="text-center my-8">
+                <Link href="/add" className="hover:underline">add a recipe</Link>
+              </div>
+            </div>
+          )}
+        </div>
+        {editingRecipe && (
+          <RecipeEditModal editingRecipe={editingRecipe} setEditingRecipe={setEditingRecipe} onClose={() => setEditingRecipe(null)} onUpdate={handleUpdate} isUpdating={isUpdating} />
+        )}
+        {deletedPlan && (
+          <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 z-50">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 text-sm">
+              <span className="text-gray-600">Removed {deletedPlan.recipe?.name} from {deletedPlan.date}</span>
+              <button
+                onClick={handleUndoDelete}
+                className="font-medium text-deep-blue hover:underline"
+              >
+                undo
+              </button>
             </div>
           </div>
         )}
       </div>
-      {editingRecipe && (
-        <RecipeEditModal editingRecipe={editingRecipe} setEditingRecipe={setEditingRecipe} onClose={() => setEditingRecipe(null)} onUpdate={handleUpdate} isUpdating={isUpdating} />
-      )}
-      {deletedPlan && (
-        <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-4 z-50">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 text-sm">
-            <span className="text-gray-600">Removed {deletedPlan.recipe?.name} from {deletedPlan.date}</span>
-            <button
-              onClick={handleUndoDelete}
-              className="font-medium text-deep-blue hover:underline"
-            >
-              undo
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+      <button
+        onClick={handleSignOut}
+        className="p-2 text-gray-400 hover:text-gray-600 flex items-center text-right gap-1 text-sm"
+      >
+        <LogOut size={16} />
+        Sign out
+      </button>
+    </>
   );
 }
