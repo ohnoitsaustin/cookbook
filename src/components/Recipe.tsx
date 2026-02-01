@@ -38,7 +38,7 @@ function getWeekDays(weekOffset = 0) {
     const now = new Date();
     const sunday = new Date(now);
     const dayOfWeek = sunday.getDay();
-    const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const daysToSunday = dayOfWeek;
     sunday.setDate(sunday.getDate() - daysToSunday + weekOffset * 7);
     sunday.setHours(0, 0, 0, 0);
 
