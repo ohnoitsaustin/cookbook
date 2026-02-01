@@ -47,7 +47,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
     const now = new Date();
     const sunday = new Date(now);
     const dayOfWeek = sunday.getDay();
-    const daysToSunday = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const daysToSunday = dayOfWeek;
     sunday.setDate(sunday.getDate() - daysToSunday + weekOffset * 7);
     sunday.setHours(0, 0, 0, 0);
 
@@ -81,6 +81,8 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
 
         fetchWeather();
     }, [startDate, endDate]);
+
+    console.log(sunday);
 
     const daysOfTheWeek = Array.from({ length: 7 }, (_, i) => {
         const date = new Date(sunday);
