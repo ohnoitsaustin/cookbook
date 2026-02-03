@@ -1,0 +1,17 @@
+{
+  "name": "Lord Family Cookbook",
+  "short_name": "Cookbook",
+  "description": "A collection of things to nourish ourselves.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#30364F",
+  "icons": [
+    {
+      "src": "/fork-and-knife.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
