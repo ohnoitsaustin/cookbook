@@ -23,8 +23,8 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests and API routes
-  if (request.method !== "GET" || url.pathname.startsWith("/api/")) {
+  // Skip non-GET, non-http(s), and API routes
+  if (request.method !== "GET" || !url.protocol.startsWith("http") || url.pathname.startsWith("/api/")) {
     return;
   }
 
