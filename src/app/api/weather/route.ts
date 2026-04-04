@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { getWeatherCache, upsertWeatherCache } from '@/src/lib/supabase';
+import { getWeatherCache, upsertWeatherCache } from '@/src/lib/db';
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 1 day
 

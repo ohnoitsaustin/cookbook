@@ -6,7 +6,7 @@ import {
   deleteRecipe,
   getRecipes,
   updateRecipe,
-} from '@/src/lib/supabase';
+} from '@/src/lib/db';
 
 export async function POST(request: Request) {
   try {

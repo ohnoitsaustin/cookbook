@@ -1,6 +1,6 @@
 import { CalendarPlus, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Plan, Recipe } from "@/src/lib/supabase";
+import type { Plan, Recipe } from "@/src/lib/db";
 
 let dragIconEl: HTMLImageElement | null = null;
 function getDragIcon(): HTMLImageElement {

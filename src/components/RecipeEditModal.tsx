@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Recipe } from "@/src/lib/supabase";
+import type { Recipe } from "@/src/lib/db";
 import { TagInput } from "@/src/components/TagInput";
 import { resizeImage } from "@/src/utils/resizeImage";
 

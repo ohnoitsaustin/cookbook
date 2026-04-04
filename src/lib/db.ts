@@ -6,7 +6,7 @@ const pool = new Pool({
   database: process.env.DB_NAME ?? 'cookbook',
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false },
   max: 5,
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 5_000,

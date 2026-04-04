@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
-import type { Plan, Recipe } from '@/src/lib/supabase';
+import type { Plan, Recipe } from '@/src/lib/db';
 import { weatherCodeToEmoji } from '@/src/utils/utils';
 
 type WeatherDay = {
