@@ -289,7 +289,7 @@ export async function getTags(): Promise<{ tag: string; count: number }[]> {
 const PLAN_SQL = `
   SELECT
     p.id,
-    p.date,
+    p.date::text AS date,
     p.notes,
     p.recipe_id,
     r.name               AS recipe_name,
