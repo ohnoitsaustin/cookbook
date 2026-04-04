@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   const { password } = await request.json();
 
-  console.log('APP_PASSWORD length:', process.env.APP_PASSWORD?.length, '| received length:', password?.length);
   if (password !== process.env.APP_PASSWORD) {
     return NextResponse.json({ error: 'Wrong password' }, { status: 401 });
   }
