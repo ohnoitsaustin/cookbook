@@ -1,9 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+import { Pool, PoolClient } from 'pg';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT ?? 5432),
+  database: process.env.DB_NAME ?? 'cookbook',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 5,
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 5_000,
+});
 
 export type Recipe = {
   id: string;
@@ -24,94 +31,160 @@ export type Plan = {
   notes: string;
 };
 
-// Find or create an ingredient record, returns its id
-export async function findOrCreateIngredient(name: string): Promise<string> {
-  const { data, error } = await supabase
-    .from('ingredients')
-    .upsert({ name }, { onConflict: 'name' })
-    .select('id')
-    .single();
+// ── SQL helpers ────────────────────────────────────────────────────────────────
 
-  if (error) throw error;
-  return data.id;
-}
+// Returns all recipe fields plus aggregated ingredients, seasons, and tags.
+// Used for both standalone recipe queries and plan → recipe joins.
+const RECIPE_SQL = `
+  SELECT
+    r.id,
+    r.name,
+    r.instructions,
+    r.prep_time,
+    r.cook_time,
+    r.image_url,
+    r.created_at,
+    COALESCE(array_agg(DISTINCT i.name) FILTER (WHERE i.name IS NOT NULL), ARRAY[]::text[]) AS ingredients,
+    COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL AND s.name <> 'any'), ARRAY[]::text[]) AS seasons,
+    COALESCE(array_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL), ARRAY[]::text[]) AS tags
+  FROM recipes r
+  LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+  LEFT JOIN ingredients i        ON ri.ingredient_id = i.id
+  LEFT JOIN recipe_seasons rs    ON r.id = rs.recipe_id
+  LEFT JOIN seasons s            ON rs.season_id = s.id
+  LEFT JOIN recipe_tags rt       ON r.id = rt.recipe_id
+  LEFT JOIN tags t               ON rt.tag_id = t.id
+`;
 
-// Find or create a tag record, returns its id
-export async function findOrCreateTag(name: string): Promise<string> {
-  const normalizedName = name.toLowerCase().trim();
-
-  const { data, error } = await supabase
-    .from('tags')
-    .upsert({ name: normalizedName }, { onConflict: 'name' })
-    .select('id')
-    .single();
-
-  if (error) throw error;
-  return data.id;
-}
-
-// Find or create a season record, returns its id
-export async function findOrCreateSeason(name: string): Promise<string> {
-  const normalizedName = name.toLowerCase().trim();
-
-  const { data, error } = await supabase
-    .from('seasons')
-    .upsert({ name: normalizedName }, { onConflict: 'name' })
-    .select('id')
-    .single();
-
-  if (error) throw error;
-  return data.id;
-}
-
-// Helper: build a Recipe from a Supabase row with joined data
-function toRecipe(row: any): Recipe {
+function toRecipe(row: Record<string, unknown>): Recipe {
   return {
-    id: row.id,
-    name: row.name || '',
-    ingredients: (row.recipe_ingredients || []).map((ri: any) => ri.ingredients?.name).filter(Boolean),
-    instructions: row.instructions || '',
-    prep_time: row.prep_time ?? null,
-    cook_time: row.cook_time ?? null,
-    season: (row.recipe_seasons || [])
-      .map((rs: any) => rs.seasons?.name)
-      .filter((s: string) => s && s !== 'any'),
-    image_url: row.image_url || null,
-    tags: (row.recipe_tags || []).map((rt: any) => rt.tags?.name).filter(Boolean),
+    id: row.id as string,
+    name: (row.name as string) || '',
+    ingredients: (row.ingredients as string[]) || [],
+    instructions: (row.instructions as string) || '',
+    prep_time: (row.prep_time as number | null) ?? null,
+    cook_time: (row.cook_time as number | null) ?? null,
+    season: (row.seasons as string[]) || [],
+    image_url: (row.image_url as string | null) || null,
+    tags: (row.tags as string[]) || [],
   };
 }
 
-const RECIPE_SELECT = `
-  *,
-  recipe_ingredients(ingredients(name)),
-  recipe_seasons(seasons(name)),
-  recipe_tags(tags(name))
-`;
+function toPlan(row: Record<string, unknown>): Plan {
+  const recipe = row.recipe_id
+    ? {
+        id: row.recipe_id as string,
+        name: (row.recipe_name as string) || '',
+        ingredients: (row.recipe_ingredients as string[]) || [],
+        instructions: (row.recipe_instructions as string) || '',
+        prep_time: (row.recipe_prep_time as number | null) ?? null,
+        cook_time: (row.recipe_cook_time as number | null) ?? null,
+        season: (row.recipe_seasons as string[]) || [],
+        image_url: (row.recipe_image_url as string | null) || null,
+        tags: (row.recipe_tags as string[]) || [],
+      }
+    : null;
 
-// Get all recipes with joined linked records
+  return {
+    id: row.id as string,
+    date: row.date as string,
+    notes: (row.notes as string) || '',
+    recipe,
+  };
+}
+
+// ── Lookups ────────────────────────────────────────────────────────────────────
+
+export async function findOrCreateIngredient(name: string): Promise<string> {
+  const { rows } = await pool.query<{ id: string }>(
+    `INSERT INTO ingredients (name) VALUES ($1)
+     ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id`,
+    [name],
+  );
+  return rows[0].id;
+}
+
+export async function findOrCreateTag(name: string): Promise<string> {
+  const normalized = name.toLowerCase().trim();
+  const { rows } = await pool.query<{ id: string }>(
+    `INSERT INTO tags (name) VALUES ($1)
+     ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id`,
+    [normalized],
+  );
+  return rows[0].id;
+}
+
+export async function findOrCreateSeason(name: string): Promise<string> {
+  const normalized = name.toLowerCase().trim();
+  const { rows } = await pool.query<{ id: string }>(
+    `INSERT INTO seasons (name) VALUES ($1)
+     ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+     RETURNING id`,
+    [normalized],
+  );
+  return rows[0].id;
+}
+
+// ── Internal link helpers (run inside a transaction client) ───────────────────
+
+async function linkIngredients(client: PoolClient, recipeId: string, names: string[]) {
+  if (names.length === 0) return;
+  const ids = await Promise.all(names.map(findOrCreateIngredient));
+  await Promise.all(
+    ids.map((id) =>
+      client.query(
+        'INSERT INTO recipe_ingredients (recipe_id, ingredient_id) VALUES ($1, $2)',
+        [recipeId, id],
+      ),
+    ),
+  );
+}
+
+async function linkSeasons(client: PoolClient, recipeId: string, names: string[]) {
+  if (names.length === 0) return;
+  const ids = await Promise.all(names.map(findOrCreateSeason));
+  await Promise.all(
+    ids.map((id) =>
+      client.query(
+        'INSERT INTO recipe_seasons (recipe_id, season_id) VALUES ($1, $2)',
+        [recipeId, id],
+      ),
+    ),
+  );
+}
+
+async function linkTags(client: PoolClient, recipeId: string, names: string[]) {
+  if (names.length === 0) return;
+  const ids = await Promise.all(names.map(findOrCreateTag));
+  await Promise.all(
+    ids.map((id) =>
+      client.query(
+        'INSERT INTO recipe_tags (recipe_id, tag_id) VALUES ($1, $2)',
+        [recipeId, id],
+      ),
+    ),
+  );
+}
+
+// ── Recipes ────────────────────────────────────────────────────────────────────
+
 export async function getRecipes(): Promise<Recipe[]> {
-  const { data, error } = await supabase
-    .from('recipes')
-    .select(RECIPE_SELECT)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return (data || []).map(toRecipe);
+  const { rows } = await pool.query(
+    `${RECIPE_SQL} GROUP BY r.id ORDER BY r.created_at DESC`,
+  );
+  return rows.map(toRecipe);
 }
 
-// Get a single recipe by ID
 export async function getRecipe(id: string): Promise<Recipe | null> {
-  const { data, error } = await supabase
-    .from('recipes')
-    .select(RECIPE_SELECT)
-    .eq('id', id)
-    .single();
-
-  if (error) return null;
-  return toRecipe(data);
+  const { rows } = await pool.query(
+    `${RECIPE_SQL} WHERE r.id = $1 GROUP BY r.id`,
+    [id],
+  );
+  return rows[0] ? toRecipe(rows[0]) : null;
 }
 
-// Create a new recipe
 export async function createRecipe(data: {
   name: string;
   ingredients: string[];
@@ -122,33 +195,33 @@ export async function createRecipe(data: {
   image_url?: string | null;
   tags: string[];
 }): Promise<Recipe> {
-  // Insert recipe row
-  const { data: recipe, error } = await supabase
-    .from('recipes')
-    .insert({
-      name: data.name,
-      instructions: data.instructions,
-      prep_time: data.prep_time,
-      cook_time: data.cook_time,
-      image_url: data.image_url || null,
-    })
-    .select('id')
-    .single();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  if (error) throw error;
-  const recipeId = recipe.id;
+    const { rows } = await client.query<{ id: string }>(
+      `INSERT INTO recipes (name, instructions, prep_time, cook_time, image_url)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [data.name, data.instructions, data.prep_time, data.cook_time, data.image_url ?? null],
+    );
+    const recipeId = rows[0].id;
 
-  // Link ingredients, seasons, tags in parallel
-  await Promise.all([
-    linkIngredients(recipeId, data.ingredients),
-    linkSeasons(recipeId, data.season),
-    linkTags(recipeId, data.tags),
-  ]);
+    await Promise.all([
+      linkIngredients(client, recipeId, data.ingredients),
+      linkSeasons(client, recipeId, data.season),
+      linkTags(client, recipeId, data.tags),
+    ]);
 
-  return (await getRecipe(recipeId))!;
+    await client.query('COMMIT');
+    return (await getRecipe(recipeId))!;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
-// Update a recipe
 export async function updateRecipe(
   id: string,
   data: {
@@ -160,179 +233,142 @@ export async function updateRecipe(
     season: string[];
     image_url?: string | null;
     tags: string[];
-  }
+  },
 ): Promise<Recipe> {
-  // Update recipe row
-  const { error } = await supabase
-    .from('recipes')
-    .update({
-      name: data.name,
-      instructions: data.instructions,
-      prep_time: data.prep_time,
-      cook_time: data.cook_time,
-      image_url: data.image_url || null,
-    })
-    .eq('id', id);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  if (error) throw error;
+    await client.query(
+      `UPDATE recipes SET name=$1, instructions=$2, prep_time=$3, cook_time=$4, image_url=$5
+       WHERE id=$6`,
+      [data.name, data.instructions, data.prep_time, data.cook_time, data.image_url ?? null, id],
+    );
 
-  // Clear old junctions and re-link
-  await Promise.all([
-    supabase.from('recipe_ingredients').delete().eq('recipe_id', id),
-    supabase.from('recipe_seasons').delete().eq('recipe_id', id),
-    supabase.from('recipe_tags').delete().eq('recipe_id', id),
-  ]);
+    // Clear then re-link all junction tables
+    await Promise.all([
+      client.query('DELETE FROM recipe_ingredients WHERE recipe_id = $1', [id]),
+      client.query('DELETE FROM recipe_seasons WHERE recipe_id = $1', [id]),
+      client.query('DELETE FROM recipe_tags WHERE recipe_id = $1', [id]),
+    ]);
 
-  await Promise.all([
-    linkIngredients(id, data.ingredients),
-    linkSeasons(id, data.season),
-    linkTags(id, data.tags),
-  ]);
+    await Promise.all([
+      linkIngredients(client, id, data.ingredients),
+      linkSeasons(client, id, data.season),
+      linkTags(client, id, data.tags),
+    ]);
 
-  return (await getRecipe(id))!;
+    await client.query('COMMIT');
+    return (await getRecipe(id))!;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
-// Delete a recipe
 export async function deleteRecipe(id: string): Promise<void> {
-  const { error } = await supabase.from('recipes').delete().eq('id', id);
-  if (error) throw error;
+  await pool.query('DELETE FROM recipes WHERE id = $1', [id]);
 }
 
-// Get all tags with usage counts
 export async function getTags(): Promise<{ tag: string; count: number }[]> {
-  const { data, error } = await supabase
-    .from('tags')
-    .select('name, recipe_tags(recipe_id)');
-
-  if (error) throw error;
-
-  return (data || [])
-    .map((t: any) => ({
-      tag: t.name as string,
-      count: (t.recipe_tags || []).length,
-    }))
-    .filter((t) => t.count > 0)
-    .sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
-      return a.tag.localeCompare(b.tag);
-    });
+  const { rows } = await pool.query<{ name: string; count: string }>(
+    `SELECT t.name, COUNT(rt.recipe_id)::int AS count
+     FROM tags t
+     LEFT JOIN recipe_tags rt ON t.id = rt.tag_id
+     GROUP BY t.id, t.name
+     HAVING COUNT(rt.recipe_id) > 0
+     ORDER BY count DESC, t.name ASC`,
+  );
+  return rows.map((r) => ({ tag: r.name, count: Number(r.count) }));
 }
 
-// Create a new plan
+// ── Plans ──────────────────────────────────────────────────────────────────────
+
+const PLAN_SQL = `
+  SELECT
+    p.id,
+    p.date,
+    p.notes,
+    p.recipe_id,
+    r.name               AS recipe_name,
+    r.instructions       AS recipe_instructions,
+    r.prep_time          AS recipe_prep_time,
+    r.cook_time          AS recipe_cook_time,
+    r.image_url          AS recipe_image_url,
+    COALESCE(array_agg(DISTINCT i.name) FILTER (WHERE i.name IS NOT NULL), ARRAY[]::text[]) AS recipe_ingredients,
+    COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL AND s.name <> 'any'), ARRAY[]::text[]) AS recipe_seasons,
+    COALESCE(array_agg(DISTINCT t.name) FILTER (WHERE t.name IS NOT NULL), ARRAY[]::text[]) AS recipe_tags
+  FROM plans p
+  LEFT JOIN recipes r             ON p.recipe_id = r.id
+  LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
+  LEFT JOIN ingredients i         ON ri.ingredient_id = i.id
+  LEFT JOIN recipe_seasons rs     ON r.id = rs.recipe_id
+  LEFT JOIN seasons s             ON rs.season_id = s.id
+  LEFT JOIN recipe_tags rt        ON r.id = rt.recipe_id
+  LEFT JOIN tags t                ON rt.tag_id = t.id
+`;
+
+export async function getPlan(id: string): Promise<Plan | null> {
+  const { rows } = await pool.query(
+    `${PLAN_SQL}
+     WHERE p.id = $1
+     GROUP BY p.id, r.id, r.name, r.instructions, r.prep_time, r.cook_time, r.image_url`,
+    [id],
+  );
+  return rows[0] ? toPlan(rows[0]) : null;
+}
+
+export async function getPlans(minDate?: string, maxDate?: string): Promise<Plan[]> {
+  const conditions: string[] = [];
+  const params: string[] = [];
+
+  if (minDate && maxDate) {
+    params.push(minDate, maxDate);
+    conditions.push(`p.date >= $1 AND p.date <= $2`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const { rows } = await pool.query(
+    `${PLAN_SQL}
+     ${where}
+     GROUP BY p.id, r.id, r.name, r.instructions, r.prep_time, r.cook_time, r.image_url
+     ORDER BY p.date ASC`,
+    params,
+  );
+  return rows.map(toPlan);
+}
+
 export async function createPlan(data: {
   date: string;
   recipeId: string;
   notes: string;
 }): Promise<Plan> {
-  const { data: plan, error } = await supabase
-    .from('plans')
-    .insert({
-      date: data.date,
-      recipe_id: data.recipeId,
-      notes: data.notes || '',
-    })
-    .select('id')
-    .single();
-
-  if (error) throw error;
-  return (await getPlan(plan.id))!;
+  const { rows } = await pool.query<{ id: string }>(
+    `INSERT INTO plans (date, recipe_id, notes) VALUES ($1, $2, $3) RETURNING id`,
+    [data.date, data.recipeId, data.notes || ''],
+  );
+  return (await getPlan(rows[0].id))!;
 }
 
-// Get a single plan
-export async function getPlan(id: string): Promise<Plan | null> {
-  const { data, error } = await supabase
-    .from('plans')
-    .select(`*, recipes(${RECIPE_SELECT})`)
-    .eq('id', id)
-    .single();
-
-  if (error) return null;
-
-  return {
-    id: data.id,
-    date: data.date,
-    recipe: data.recipes ? toRecipe(data.recipes) : null,
-    notes: data.notes || '',
-  };
-}
-
-// Get plans with optional date range
-export async function getPlans(minDate?: string, maxDate?: string): Promise<Plan[]> {
-  let query = supabase
-    .from('plans')
-    .select(`*, recipes(${RECIPE_SELECT})`)
-    .order('date', { ascending: true });
-
-  if (minDate && maxDate) {
-    query = query.gte('date', minDate).lte('date', maxDate);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    date: row.date,
-    recipe: row.recipes ? toRecipe(row.recipes) : null,
-    notes: row.notes || '',
-  }));
-}
-
-// Update a plan
 export async function updatePlan(
   id: string,
-  data: {
-    date: string;
-    recipeId?: string;
-    notes?: string;
-  }
+  data: { date: string; recipeId?: string; notes?: string },
 ): Promise<Plan> {
-  const { error } = await supabase
-    .from('plans')
-    .update({
-      date: data.date,
-      recipe_id: data.recipeId || null,
-      notes: data.notes || '',
-    })
-    .eq('id', id);
-
-  if (error) throw error;
+  await pool.query(
+    `UPDATE plans SET date=$1, recipe_id=$2, notes=$3 WHERE id=$4`,
+    [data.date, data.recipeId ?? null, data.notes ?? '', id],
+  );
   return (await getPlan(id))!;
 }
 
-// Delete a plan
 export async function deletePlan(id: string): Promise<void> {
-  const { error } = await supabase.from('plans').delete().eq('id', id);
-  if (error) throw error;
+  await pool.query('DELETE FROM plans WHERE id = $1', [id]);
 }
 
-// --- Internal helpers ---
-
-async function linkIngredients(recipeId: string, names: string[]) {
-  if (names.length === 0) return;
-  const ids = await Promise.all(names.map((n) => findOrCreateIngredient(n)));
-  const rows = ids.map((ingredient_id) => ({ recipe_id: recipeId, ingredient_id }));
-  const { error } = await supabase.from('recipe_ingredients').insert(rows);
-  if (error) throw error;
-}
-
-async function linkSeasons(recipeId: string, names: string[]) {
-  if (names.length === 0) return;
-  const ids = await Promise.all(names.map((n) => findOrCreateSeason(n)));
-  const rows = ids.map((season_id) => ({ recipe_id: recipeId, season_id }));
-  const { error } = await supabase.from('recipe_seasons').insert(rows);
-  if (error) throw error;
-}
-
-async function linkTags(recipeId: string, names: string[]) {
-  if (names.length === 0) return;
-  const ids = await Promise.all(names.map((n) => findOrCreateTag(n)));
-  const rows = ids.map((tag_id) => ({ recipe_id: recipeId, tag_id }));
-  const { error } = await supabase.from('recipe_tags').insert(rows);
-  if (error) throw error;
-}
-
-// --- Weather Cache ---
+// ── Weather cache ──────────────────────────────────────────────────────────────
 
 export type WeatherCacheEntry = {
   date: string;
@@ -343,24 +379,30 @@ export type WeatherCacheEntry = {
 };
 
 export async function getWeatherCache(dates: string[]): Promise<WeatherCacheEntry[]> {
-  const { data, error } = await supabase
-    .from('weather_cache')
-    .select('*')
-    .in('date', dates);
-
-  if (error) throw error;
-  return data || [];
+  if (dates.length === 0) return [];
+  const { rows } = await pool.query<WeatherCacheEntry>(
+    'SELECT * FROM weather_cache WHERE date = ANY($1)',
+    [dates],
+  );
+  return rows;
 }
 
-export async function upsertWeatherCache(entries: Omit<WeatherCacheEntry, 'updated_at'>[]): Promise<void> {
-  const rows = entries.map(e => ({
-    ...e,
-    updated_at: new Date().toISOString(),
-  }));
-
-  const { error } = await supabase
-    .from('weather_cache')
-    .upsert(rows, { onConflict: 'date' });
-
-  if (error) throw error;
+export async function upsertWeatherCache(
+  entries: Omit<WeatherCacheEntry, 'updated_at'>[],
+): Promise<void> {
+  if (entries.length === 0) return;
+  await Promise.all(
+    entries.map((e) =>
+      pool.query(
+        `INSERT INTO weather_cache (date, high, low, weather_code, updated_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (date) DO UPDATE
+           SET high = EXCLUDED.high,
+               low  = EXCLUDED.low,
+               weather_code = EXCLUDED.weather_code,
+               updated_at   = NOW()`,
+        [e.date, e.high, e.low, e.weather_code],
+      ),
+    ),
+  );
 }

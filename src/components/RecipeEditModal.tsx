@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Recipe } from "@/src/lib/supabase";
 import { TagInput } from "@/src/components/TagInput";
+import { resizeImage } from "@/src/utils/resizeImage";
 
 export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRecipe, isUpdating }: { onClose: () => void, onUpdate: (updatedRecipe: Recipe) => void, editingRecipe: Recipe, setEditingRecipe: (recipe: Recipe | null) => void, isUpdating: boolean }) => {
     const [uploading, setUploading] = useState(false);
@@ -11,8 +12,9 @@ export const RecipeEditModal = ({ onClose, onUpdate, editingRecipe, setEditingRe
         if (!file) return;
 
         setUploading(true);
+        const resized = await resizeImage(file);
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', resized);
 
         try {
             const response = await fetch('/api/upload', {

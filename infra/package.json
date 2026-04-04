@@ -1,0 +1,23 @@
+{
+  "name": "cookbook-infra",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "cdk": "cdk",
+    "deploy": "cdk deploy --require-approval never",
+    "diff": "cdk diff",
+    "synth": "cdk synth",
+    "destroy": "cdk destroy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.173.0",
+    "constructs": "^10.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "aws-cdk": "^2.173.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.7.2"
+  }
+}

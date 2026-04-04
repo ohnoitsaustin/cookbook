@@ -4,6 +4,7 @@ import { getCurrentSeason } from '@/src/utils/utils';
 import Link from 'next/link';
 import { useState } from 'react';
 import { TagInput } from '@/src/components/TagInput';
+import { resizeImage } from '@/src/utils/resizeImage';
 
 export default function RecipesPage() {
   const [formData, setFormData] = useState({
@@ -116,8 +117,9 @@ export default function RecipesPage() {
     if (!file) return;
 
     setUploading(true);
+    const resized = await resizeImage(file);
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', resized);
 
     try {
       const response = await fetch('/api/upload', {
