@@ -1,38 +1,44 @@
-import { v2 as cloudinary } from 'cloudinary';
-import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 
-cloudinary.config({
-    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+
+const s3 = new S3Client({
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.APP_AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.APP_AWS_SECRET_ACCESS_KEY!,
+  },
 });
 
 export async function POST(request: Request) {
-    try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File;
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
 
-        if (!file) {
-            return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-        }
-
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        const result = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                { folder: 'recipes' },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-            uploadStream.end(buffer);
-        });
-
-        return NextResponse.json({ url: (result as any).secure_url });
-    } catch (error) {
-        console.error('Upload error:', error);
-        return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const ext = file.type.split('/')[1] || 'jpg';
+    const key = `recipes/${randomUUID()}.${ext}`;
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET!,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+      }),
+    );
+
+    const url = `${process.env.CLOUDFRONT_URL}/${key}`;
+    return NextResponse.json({ url });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+  }
 }
