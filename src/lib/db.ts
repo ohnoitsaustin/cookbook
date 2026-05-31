@@ -1,11 +1,16 @@
 import { Pool, PoolClient } from 'pg';
 
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT ?? 5432),
-  database: process.env.DB_NAME ?? 'cookbook',
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  // Prefer a single connection string (Neon, etc.); fall back to discrete vars.
+  ...(process.env.DATABASE_URL
+    ? { connectionString: process.env.DATABASE_URL }
+    : {
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT ?? 5432),
+        database: process.env.DB_NAME ?? 'cookbook',
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+      }),
   ssl: { rejectUnauthorized: false },
   max: 5,
   idleTimeoutMillis: 10_000,
@@ -347,7 +352,9 @@ export async function createPlan(data: {
   notes: string;
 }): Promise<Plan> {
   const { rows } = await pool.query<{ id: string }>(
-    `INSERT INTO plans (date, recipe_id, notes) VALUES ($1, $2, $3) RETURNING id`,
+    `INSERT INTO plans (date, recipe_id, notes) VALUES ($1, $2, $3)
+     ON CONFLICT (date) DO UPDATE SET recipe_id = EXCLUDED.recipe_id, notes = EXCLUDED.notes
+     RETURNING id`,
     [data.date, data.recipeId, data.notes || ''],
   );
   return (await getPlan(rows[0].id))!;

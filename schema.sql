@@ -1,5 +1,5 @@
--- Supabase schema for cookbook app
--- Run this in the Supabase SQL Editor to create all tables
+-- Postgres schema for the cookbook app.
+-- Run this against the database (Neon SQL editor or `psql "$DATABASE_URL" -f schema.sql`).
 
 create table recipes (
   id uuid primary key default gen_random_uuid(),
@@ -46,8 +46,20 @@ create table recipe_tags (
 
 create table plans (
   id uuid primary key default gen_random_uuid(),
-  date date not null,
+  date date not null unique,
   recipe_id uuid references recipes(id) on delete set null,
   notes text not null default '',
   created_at timestamptz not null default now()
 );
+
+create table weather_cache (
+  date date primary key,
+  high int not null,
+  low int not null,
+  weather_code int not null,
+  updated_at timestamptz not null default now()
+);
+
+-- Seed the season lookup used for recipe filtering.
+insert into seasons (name) values
+  ('spring'), ('summer'), ('fall'), ('winter'), ('any');

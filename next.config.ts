@@ -4,9 +4,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        // CloudFront distributions for recipe images
+        // Cloudflare R2 public bucket (r2.dev) for recipe images
         protocol: 'https',
-        hostname: '*.cloudfront.net',
+        hostname: '*.r2.dev',
       },
     ],
   },
