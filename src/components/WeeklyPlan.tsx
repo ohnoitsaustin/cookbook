@@ -238,7 +238,7 @@ export function WeeklyPlan({ plans, recipes, onDropRecipe, onRemovePlan, isDragg
                                 <p className="text-xs text-gray-400 my-2 text-center">{emptyPlanMsg}</p>
                             </div>
                         )}
-                        <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left w-10">
+                        <div className="mb-2 sm:mb-1 m-2 sm:m-0 text-left">
                             <h3 className={`text-xs uppercase ${day.isToday ? 'text-deep-blue font-bold' : 'text-gray-500'}`}>{day.label}</h3>
                             <p className={`text-xs ${day.isToday ? 'text-deep-blue' : 'text-gray-500'}`}>{day.shortDisplay}</p>
                             {day.isToday && <p className="text-xs block sm:hidden">Today</p>}
